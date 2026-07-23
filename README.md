@@ -28,7 +28,9 @@ BNI_PASSWORD=secret
 ## Usage — blogs
 
 ```bash
+poetry run datascrapping guide   # decision guide (blog vs BNI + known values)
 poetry run datascrapping list
+poetry run datascrapping run --help   # flags grouped: Shared / Blog / BNI
 poetry run datascrapping run blog.auditik
 poetry run datascrapping run blog.concorrente \
   --url https://site.com/blog/ \
@@ -47,19 +49,23 @@ poetry run datascrapping run blog.all --delay-min 1.5 --delay-max 4
 
 Target: [BNI search dashboard](https://www.bniconnectglobal.com/web/dashboard/search)
 
-BNI directory search returns **at most ~250 results** per query. **`--specialty` is required** and must be a value from BNI’s **Search Category** dropdown (not free text). `--region` (State) is optional.
+BNI directory search returns **at most ~250 results** per query. Filters are all optional (`--specialty`, `--region`, `--country`, `--category`). When set, `--specialty` must be a value from BNI’s **Search Category** dropdown (not free text).
 
 ```bash
 # Discover valid specialty labels (EN / pt_BR / es)
+poetry run datascrapping guide
+poetry run datascrapping bni-specialties --groups-only
 poetry run datascrapping bni-specialties
 poetry run datascrapping bni-specialties --query fono --locale pt_BR
 poetry run datascrapping bni-specialties -q hearing
 
-# Minimum: specialty only (localized or English label both work)
+# Any combination of filters (defaults: country=Brazil)
+poetry run datascrapping run bni
+poetry run datascrapping run bni --region SP
 poetry run datascrapping run bni --specialty "Fonoaudiologia"
 poetry run datascrapping run bni --specialty "Hearing/Audiology"
 
-# Safer cut with State + specialty
+# Narrower cut with State + specialty
 poetry run datascrapping run bni \
   --region SP \
   --specialty "Hearing/Audiology" \
@@ -80,8 +86,7 @@ poetry run datascrapping run bni \
 Example: Portuguese `Fonoaudiologia` maps to English UI `Hearing/Audiology` (same category id).
 Outputs:
 
-- CSV: `output/bni/<country>_<region|all>_<specialty>/members.csv`
-- Checkpoint: `members.seen.json` (resume skips already collected profile URLs)
+- CSV: `output/bni/<country>_<region|all>_<specialty|all>/members.csv`- Checkpoint: `members.seen.json` (resume skips already collected profile URLs)
 - Session: `output/.auth/bni_storage.json` (gitignored)
 
 If BNI starts requiring 2FA/CAPTCHA, re-run with `--headed --reauth`, complete the challenge in the browser, then continue; the session is saved for later headless runs.

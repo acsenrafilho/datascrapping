@@ -25,21 +25,16 @@ CSV_FIELDS = (
 
 @dataclass
 class BniFilters:
-    """Required cut: specialty (Search Category). Region (State) is optional."""
+    """Optional BNI search filters (country defaults to Brazil)."""
 
-    specialty: str
+    specialty: str | None = None
     region: str | None = None
     country: str = "Brazil"
     category: str | None = None
 
     def validate(self) -> None:
-        if not (self.specialty and self.specialty.strip()):
-            raise ValueError(
-                "BNI requires --specialty (Search Category), "
-                'e.g. --specialty "Hearing/Audiology" or --specialty '
-                '"Fonoaudiologia". List options with: '
-                "datascrapping bni-specialties"
-            )
+        # All filters are optional; keep method for future constraints.
+        return
 
 
 @dataclass
@@ -69,15 +64,15 @@ class BniMember:
 
 def filters_from_extras(extras: dict) -> BniFilters:
     region_raw = str(extras.get("region") or "").strip()
+    specialty_raw = str(extras.get("specialty") or "").strip()
+    category_raw = (
+        str(extras["category"]).strip() if extras.get("category") else ""
+    )
     filters = BniFilters(
-        specialty=str(extras.get("specialty") or "").strip(),
+        specialty=specialty_raw or None,
         region=region_raw or None,
         country=str(extras.get("country") or "Brazil").strip() or "Brazil",
-        category=(
-            str(extras["category"]).strip()
-            if extras.get("category")
-            else None
-        ),
+        category=category_raw or None,
     )
     filters.validate()
     return filters

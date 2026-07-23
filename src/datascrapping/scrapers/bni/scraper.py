@@ -34,8 +34,8 @@ DEFAULT_BNI_DELAY_MAX = 8.0
 class BniScraper(BaseScraper):
     name = "bni"
     description = (
-        "BNI Connect member search → CSV (requires --specialty "
-        "from Search Category; see bni-specialties)"
+        "BNI Connect member search → CSV "
+        "(optional --specialty/--region/--country; see bni-specialties)"
     )
 
     def run(self, ctx: ScrapeContext) -> ScrapeResult:
@@ -64,14 +64,21 @@ class BniScraper(BaseScraper):
         if all_pages:
             logger.warning(
                 "--all-pages enabled: will walk every results page for this "
-                "specialty cut. Slower and higher risk of rate limits. "
-                "BNI still caps a search at ~250 members; add --region if "
-                "the result set is too broad."
+                "filter cut. Slower and higher risk of rate limits. "
+                "BNI still caps a search at ~250 members; narrow with "
+                "--specialty / --region if the result set is too broad."
+            )
+        if not filters.specialty:
+            logger.warning(
+                "No --specialty provided. Broader searches hit BNI's ~250 "
+                "result cap sooner. List categories with: "
+                "datascrapping bni-specialties"
             )
 
         region_part = filters.region or "all"
+        specialty_part = filters.specialty or "all"
         run_slug = sanitize_filename(
-            f"{filters.country}_{region_part}_{filters.specialty}"
+            f"{filters.country}_{region_part}_{specialty_part}"
         )[:80]
         out_dir = Path(ctx.out_dir) / "bni" / run_slug
         out_dir.mkdir(parents=True, exist_ok=True)

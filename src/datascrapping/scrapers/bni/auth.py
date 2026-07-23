@@ -196,7 +196,7 @@ def ensure_authenticated(
             raise RuntimeError(
                 message
                 + "\nRe-run with: poetry run datascrapping run bni "
-                "--specialty … [--region …] --headed --reauth"
+                "[--specialty …] [--region …] --headed --reauth"
             )
         wait_for_manual_challenge(page, message=message)
         # Wait until we leave login / challenge

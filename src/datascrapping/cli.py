@@ -7,19 +7,41 @@ from typing import Optional
 import typer
 from rich.console import Console
 from rich.logging import RichHandler
+from rich.panel import Panel
 from rich.table import Table
+from rich.text import Text
 
 from datascrapping import __version__
+from datascrapping.cli_help import (
+    BLOG_PAGINATION_MODES,
+    BNI_CATEGORY_GROUPS,
+    BNI_SPECIALTY_EXAMPLES,
+    SHARED_DEFAULTS,
+)
 from datascrapping.core.base import ScrapeContext
 from datascrapping.core.config import default_delays, default_output_dir, load_env
 from datascrapping.core.registry import registry
 from datascrapping.scrapers.loader import load_scrapers
 
+APP_EPILOG = (
+    "Commands to explore options:\n\n"
+    "  datascrapping guide              Decision guide (blog vs BNI, examples)\n"
+    "  datascrapping list               Registered scrapers by family\n"
+    "  datascrapping bni-specialties    Live BNI Search Category list (login)\n"
+    "  datascrapping run --help         Flags grouped: Shared / Blog / BNI"
+)
+
 app = typer.Typer(
     name="datascrapping",
-    help="CLI toolkit for structured web scraping and data collection.",
+    help=(
+        "CLI toolkit for structured web scraping and data collection.\n\n"
+        "Two families: [bold]blog.*[/bold] (HTTP markdown crawlers) and "
+        "[bold]bni[/bold] (BNI Connect member search → CSV)."
+    ),
+    epilog=APP_EPILOG,
     no_args_is_help=True,
     add_completion=False,
+    rich_markup_mode="rich",
 )
 console = Console()
 
@@ -31,6 +53,175 @@ def _setup_logging(verbose: bool) -> None:
         format="%(message)s",
         datefmt="[%X]",
         handlers=[RichHandler(console=console, rich_tracebacks=True)],
+    )
+
+
+def _print_guide() -> None:
+    console.print(
+        Panel.fit(
+            Text.from_markup(
+                f"[bold]datascrapping {__version__}[/bold] — how to choose "
+                "and run scrapers"
+            ),
+            border_style="cyan",
+        )
+    )
+
+    console.print("\n[bold cyan]1. Pick a family[/bold cyan]")
+    family = Table(show_header=True, header_style="bold")
+    family.add_column("Family")
+    family.add_column("Scrapers")
+    family.add_column("Typical goal")
+    family.add_row(
+        "Blog",
+        "blog.auditik, blog.communicare, blog.essencial,\n"
+        "blog.otoclinic, blog.sonorita, blog.concorrente, blog.all",
+        "Crawl listing pages → save article markdown",
+    )
+    family.add_row(
+        "BNI",
+        "bni",
+        "Search BNI Connect members → CSV "
+        "(login via BNI_EMAIL / BNI_PASSWORD)",
+    )
+    console.print(family)
+
+    console.print("\n[bold cyan]2. Shared flags[/bold cyan] (both families)")
+    shared = Table(show_header=True, header_style="bold")
+    shared.add_column("Flag / setting")
+    shared.add_column("Default / notes")
+    for name, note in SHARED_DEFAULTS:
+        shared.add_row(name, note)
+    shared.add_row("--dry-run", "Discover/extract without writing files")
+    shared.add_row("-v / --verbose", "Debug logging")
+    console.print(shared)
+
+    console.print("\n[bold magenta]3. Blog scrapers[/bold magenta]")
+    console.print(
+        "Use [cyan]datascrapping list[/cyan] then:\n"
+        "  [green]datascrapping run blog.auditik[/green]\n"
+        "  [green]datascrapping run blog.concorrente "
+        "--url https://site.com/blog/ --out pasta[/green]\n"
+        "  [green]datascrapping run blog.all --delay-min 1.5 "
+        "--delay-max 4[/green]"
+    )
+    blog_flags = Table(title="Blog-only flags", show_header=True)
+    blog_flags.add_column("Flag")
+    blog_flags.add_column("Purpose")
+    blog_flags.add_row(
+        "--url", "Listing URL (required for blog.concorrente)"
+    )
+    blog_flags.add_row(
+        "--out", "Output subdirectory name under --out-dir"
+    )
+    blog_flags.add_row(
+        "--pagination",
+        "auto | simple | numbered | bfs",
+    )
+    blog_flags.add_row(
+        "--max-pages",
+        "Cap listing pages for auto/bfs (optional)",
+    )
+    console.print(blog_flags)
+
+    modes = Table(title="--pagination values", show_header=True)
+    modes.add_column("Mode", style="cyan")
+    modes.add_column("Meaning")
+    for mode, meaning in BLOG_PAGINATION_MODES:
+        modes.add_row(mode, meaning)
+    console.print(modes)
+
+    console.print("\n[bold yellow]4. BNI scraper[/bold yellow]")
+    console.print(
+        "Needs Poetry extra [cyan]browser[/cyan] + Playwright Chromium "
+        "and credentials in [cyan].env[/cyan] "
+        "([cyan]BNI_EMAIL[/cyan] / [cyan]BNI_PASSWORD[/cyan]).\n"
+        "All search filters are optional; omit any you do not need.\n"
+        "BNI caps directory search at ~[bold]250[/bold] results — "
+        "narrow with --specialty / --region when possible."
+    )
+    bni_flags = Table(title="BNI-only flags", show_header=True)
+    bni_flags.add_column("Flag")
+    bni_flags.add_column("Purpose / known values")
+    bni_flags.add_row(
+        "--country",
+        "Country autocomplete (default: Brazil). Example: Brazil",
+    )
+    bni_flags.add_row(
+        "--region",
+        "State / UF free text (e.g. SP, MG, Rio de Janeiro)",
+    )
+    bni_flags.add_row(
+        "--specialty",
+        "Search Category from BNI's fixed list — "
+        "not free text. See examples below and "
+        "[cyan]bni-specialties[/cyan]",
+    )
+    bni_flags.add_row(
+        "--category",
+        "Optional primary group hint "
+        "(e.g. Health & Wellness). See groups below.",
+    )
+    bni_flags.add_row(
+        "--all-pages",
+        "Walk every API results page for the cut (slower)",
+    )
+    bni_flags.add_row(
+        "--headed",
+        "Show browser (needed for 2FA/CAPTCHA)",
+    )
+    bni_flags.add_row(
+        "--reauth",
+        "Ignore saved session; log in again",
+    )
+    console.print(bni_flags)
+
+    examples = Table(
+        title="Example --specialty values (EN ↔ pt_BR)",
+        show_header=True,
+    )
+    examples.add_column("English (UI)", style="cyan")
+    examples.add_column("pt_BR")
+    examples.add_column("Group")
+    for en, pt, group in BNI_SPECIALTY_EXAMPLES:
+        examples.add_row(en, pt, group)
+    console.print(examples)
+    console.print(
+        "[dim]Either label works with --specialty; the scraper maps "
+        "locales via BNI's category id.[/dim]"
+    )
+
+    groups = Table(
+        title=f"Known BNI --category groups ({len(BNI_CATEGORY_GROUPS)})",
+        show_header=False,
+    )
+    groups.add_column("Group")
+    # 2-column layout via paired rows
+    items = list(BNI_CATEGORY_GROUPS)
+    for i in range(0, len(items), 2):
+        left = items[i]
+        right = items[i + 1] if i + 1 < len(items) else ""
+        groups.add_row(f"{left}" + (f"    |    {right}" if right else ""))
+    console.print(groups)
+    console.print(
+        "Live specialty list (login required):\n"
+        "  [green]datascrapping bni-specialties[/green]\n"
+        "  [green]datascrapping bni-specialties -q fono --locale pt_BR[/green]\n"
+        "  [green]datascrapping bni-specialties -q hearing[/green]"
+    )
+
+    console.print("\n[bold cyan]5. Example BNI runs[/bold cyan]")
+    console.print(
+        "  [green]datascrapping run bni[/green]\n"
+        "  [green]datascrapping run bni --region SP[/green]\n"
+        "  [green]datascrapping run bni --specialty Fonoaudiologia[/green]\n"
+        "  [green]datascrapping run bni --region SP "
+        "--specialty \"Hearing/Audiology\" --all-pages[/green]\n"
+        "  [green]datascrapping run bni --headed --reauth[/green]"
+    )
+    console.print(
+        "\n[dim]Tip: [cyan]datascrapping run --help[/cyan] shows the same "
+        "flags in Shared / Blog / BNI panels.[/dim]"
     )
 
 
@@ -46,89 +237,170 @@ def main(
     _setup_logging(verbose)
 
 
+@app.command("guide")
+def show_guide() -> None:
+    """Show a decision guide: blog vs BNI, flags, and known BNI categories."""
+    _print_guide()
+
+
 @app.command("list")
 def list_scrapers() -> None:
-    """List registered scrapers."""
-    table = Table(title=f"datascrapping {__version__} — scrapers")
-    table.add_column("Name", style="cyan")
-    table.add_column("Description")
-    for name, description in registry.list():
-        table.add_row(name, description)
-    console.print(table)
+    """List registered scrapers grouped by family (blog vs BNI)."""
+    entries = registry.list()
+    blog = [(n, d) for n, d in entries if n.startswith("blog.")]
+    bni = [(n, d) for n, d in entries if n == "bni" or n.startswith("bni.")]
+    other = [
+        (n, d)
+        for n, d in entries
+        if not n.startswith("blog.") and n != "bni" and not n.startswith("bni.")
+    ]
+
+    def _table(title: str, rows: list[tuple[str, str]]) -> None:
+        if not rows:
+            return
+        table = Table(title=title)
+        table.add_column("Name", style="cyan")
+        table.add_column("Description")
+        for name, description in rows:
+            table.add_row(name, description)
+        console.print(table)
+
+    console.print(
+        Panel.fit(
+            f"datascrapping {__version__} — scrapers",
+            border_style="cyan",
+        )
+    )
+    _table("Blog scrapers", blog)
+    _table("BNI scrapers", bni)
+    _table("Other scrapers", other)
+    console.print(
+        "\n[dim]How to choose flags:[/dim] [cyan]datascrapping guide[/cyan]\n"
+        "[dim]BNI specialties:[/dim] [cyan]datascrapping bni-specialties[/cyan]"
+    )
 
 
-@app.command("run")
-def run_scraper(
-    scraper: str = typer.Argument(..., help="Scraper name (see `list`)."),
-    url: Optional[str] = typer.Option(
-        None, "--url", help="Listing URL (required by blog.concorrente)."
+@app.command(
+    "run",
+    epilog=(
+        "See also: [cyan]datascrapping guide[/cyan] · "
+        "[cyan]datascrapping list[/cyan] · "
+        "[cyan]datascrapping bni-specialties[/cyan]"
     ),
+)
+def run_scraper(
+    scraper: str = typer.Argument(
+        ...,
+        help="Scraper name from [cyan]list[/cyan] (blog.* or bni).",
+        rich_help_panel="Target",
+    ),
+    # Shared
     out: Optional[str] = typer.Option(
-        None, "--out", help="Output subdirectory under --out-dir."
+        None,
+        "--out",
+        help="Output subdirectory under --out-dir (mostly blog).",
+        rich_help_panel="Shared",
     ),
     out_dir: Optional[Path] = typer.Option(
         None,
         "--out-dir",
         help="Root output directory (default: OUTPUT_DIR or ./output).",
+        rich_help_panel="Shared",
     ),
     delay_min: Optional[float] = typer.Option(
-        None, "--delay-min", help="Minimum delay between requests/profiles."
+        None,
+        "--delay-min",
+        help="Minimum delay between requests/profiles.",
+        rich_help_panel="Shared",
     ),
     delay_max: Optional[float] = typer.Option(
-        None, "--delay-max", help="Maximum delay between requests/profiles."
+        None,
+        "--delay-max",
+        help="Maximum delay between requests/profiles.",
+        rich_help_panel="Shared",
     ),
     dry_run: bool = typer.Option(
-        False, "--dry-run", help="Discover/extract without writing files."
+        False,
+        "--dry-run",
+        help="Discover/extract without writing files.",
+        rich_help_panel="Shared",
     ),
+    # Blog
+    url: Optional[str] = typer.Option(
+        None,
+        "--url",
+        help="Listing URL (required by blog.concorrente).",
+        rich_help_panel="Blog scrapers",
+    ),
+    pagination: Optional[str] = typer.Option(
+        None,
+        "--pagination",
+        help="Pagination mode: auto|simple|numbered|bfs (default auto).",
+        rich_help_panel="Blog scrapers",
+    ),
+    max_pages: Optional[int] = typer.Option(
+        None,
+        "--max-pages",
+        help="Max listing pages to crawl (auto/bfs).",
+        rich_help_panel="Blog scrapers",
+    ),
+    # BNI
     country: Optional[str] = typer.Option(
-        None, "--country", help="BNI country filter (default: Brazil)."
+        None,
+        "--country",
+        help="Country filter (default: Brazil). Example: Brazil.",
+        rich_help_panel="BNI scraper",
     ),
     region: Optional[str] = typer.Option(
-        None, "--region", help="BNI Estado/UF filter (optional)."
+        None,
+        "--region",
+        help="State/UF filter (optional free text, e.g. SP).",
+        rich_help_panel="BNI scraper",
     ),
     specialty: Optional[str] = typer.Option(
         None,
         "--specialty",
         help=(
-            "BNI Search Category (required for bni). "
-            "Use English or localized labels; see `bni-specialties`."
+            "Search Category from BNI's known list (optional, not free text). "
+            "Examples: Hearing/Audiology, Fonoaudiologia. "
+            "List all: [cyan]bni-specialties[/cyan]."
         ),
+        rich_help_panel="BNI scraper",
     ),
     category: Optional[str] = typer.Option(
         None,
         "--category",
-        help="BNI optional primary category group (e.g. Health & Wellness).",
+        help=(
+            "Primary category group hint (optional), e.g. Health & Wellness. "
+            "See [cyan]guide[/cyan] for the known group list."
+        ),
+        rich_help_panel="BNI scraper",
     ),
     all_pages: bool = typer.Option(
         False,
         "--all-pages",
-        help=(
-            "BNI: walk every results page for the filtered search "
-            "(slower; use consciously)."
-        ),
+        help="Walk every results page for the filter cut (slower).",
+        rich_help_panel="BNI scraper",
     ),
     headed: bool = typer.Option(
         False,
         "--headed",
-        help="BNI: show the browser (also used for 2FA/CAPTCHA).",
+        help="Show the browser (also used for 2FA/CAPTCHA).",
+        rich_help_panel="BNI scraper",
     ),
     reauth: bool = typer.Option(
         False,
         "--reauth",
-        help="BNI: ignore saved session and log in again.",
-    ),
-    pagination: Optional[str] = typer.Option(
-        None,
-        "--pagination",
-        help="Blog: pagination mode auto|simple|numbered|bfs.",
-    ),
-    max_pages: Optional[int] = typer.Option(
-        None,
-        "--max-pages",
-        help="Blog: max listing pages to crawl (auto/bfs).",
+        help="Ignore saved session and log in again.",
+        rich_help_panel="BNI scraper",
     ),
 ) -> None:
-    """Run a registered scraper."""
+    """Run a registered scraper.
+
+    [bold]Blog[/bold] and [bold]BNI[/bold] use different flags — see panels
+    below, or run [cyan]datascrapping guide[/cyan] for examples and known
+    BNI specialty/category values.
+    """
     env_min, env_max = default_delays()
     delay_explicit = delay_min is not None or delay_max is not None
     extras = {
@@ -166,17 +438,11 @@ def run_scraper(
         scraper_cls = registry.get(scraper)
     except KeyError as exc:
         console.print(f"[red]{exc}[/red]")
+        console.print(
+            "[dim]Try[/dim] [cyan]datascrapping list[/cyan] "
+            "[dim]or[/dim] [cyan]datascrapping guide[/cyan]"
+        )
         raise typer.Exit(code=1) from exc
-
-    if scraper == "bni":
-        if not specialty:
-            console.print(
-                "[red]BNI requires --specialty (Search Category dropdown). "
-                "List valid values with:[/red] "
-                "[cyan]datascrapping bni-specialties[/cyan]\n"
-                "[dim]--region (State) is optional.[/dim]"
-            )
-            raise typer.Exit(code=1)
 
     console.print(
         f"[bold]Running[/bold] {scraper} → {ctx.out_dir}"
@@ -216,6 +482,11 @@ def bni_specialties(
         "-l",
         help="Display locale: en, pt_BR, or es.",
     ),
+    groups_only: bool = typer.Option(
+        False,
+        "--groups-only",
+        help="Only print primary category groups (no login / network).",
+    ),
     headed: bool = typer.Option(
         False, "--headed", help="Show browser while authenticating."
     ),
@@ -228,7 +499,28 @@ def bni_specialties(
         help="Root output directory (default: OUTPUT_DIR or ./output).",
     ),
 ) -> None:
-    """List BNI Search Category values usable with --specialty."""
+    """List BNI Search Category values for --specialty.
+
+    Without network: [cyan]--groups-only[/cyan] shows known primary groups.
+    Full specialty list requires a logged-in BNI session.
+    """
+    if groups_only:
+        table = Table(
+            title=f"BNI primary category groups ({len(BNI_CATEGORY_GROUPS)})"
+        )
+        table.add_column("#", style="dim")
+        table.add_column("Group (--category)", style="cyan")
+        for index, group in enumerate(BNI_CATEGORY_GROUPS, start=1):
+            table.add_row(str(index), group)
+        console.print(table)
+        console.print(
+            "[dim]Full specialty labels:[/dim] "
+            "[cyan]datascrapping bni-specialties[/cyan] "
+            "[dim](or[/dim] [cyan]-q …[/cyan][dim]). "
+            "Examples in[/dim] [cyan]datascrapping guide[/cyan]."
+        )
+        return
+
     from datascrapping.core.browser import BrowserUnavailableError, browser_session
     from datascrapping.scrapers.bni.auth import ensure_authenticated
     from datascrapping.scrapers.bni.categories import (
@@ -252,7 +544,6 @@ def bni_specialties(
                 headed=headed,
                 reauth=reauth,
             )
-            # Ensure API cookies are established on the BNI origin.
             page.goto(
                 "https://www.bniconnectglobal.com/web/",
                 wait_until="domcontentloaded",
@@ -279,7 +570,6 @@ def bni_specialties(
             c.secondary_id
             for c in find_category_matches(query, display, limit=500)
         }
-        # Also match against English labels when displaying another locale.
         if locale != UI_LOCALE:
             matched_ids.update(
                 c.secondary_id
@@ -295,7 +585,7 @@ def bni_specialties(
 
     table = Table(title=f"BNI Search Categories ({locale}) — {len(rows)}")
     table.add_column("Specialty (--specialty)", style="cyan")
-    table.add_column("Group")
+    table.add_column("Group (--category)")
     if locale != UI_LOCALE:
         table.add_column("English UI value")
     for category in sorted(rows, key=lambda c: (c.primary, c.secondary)):
@@ -307,7 +597,8 @@ def bni_specialties(
     console.print(table)
     console.print(
         "[dim]Use either the localized or English label with "
-        "--specialty; the scraper maps them automatically.[/dim]"
+        "--specialty; the scraper maps them automatically.[/dim]\n"
+        "[dim]Decision guide:[/dim] [cyan]datascrapping guide[/cyan]"
     )
 
 

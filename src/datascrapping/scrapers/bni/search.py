@@ -37,7 +37,7 @@ class SearchPage:
     total_pages: int
     total_results: int
     members: list[BniMember]
-    resolved: BniCategory
+    resolved: BniCategory | None
 
 
 def open_filter_panel(page) -> None:
@@ -118,23 +118,12 @@ def _select_mui_autocomplete(page, placeholder: str, value: str) -> bool:
     return False
 
 
-def apply_filters(page, filters: BniFilters) -> BniCategory:
-    """Open Filter UI, apply country/region/specialty, run search.
+def apply_filters(page, filters: BniFilters) -> BniCategory | None:
+    """Open Filter UI, apply optional country/region/specialty, run search.
 
-    Returns the resolved English Search Category used for API queries.
+    Returns the resolved Search Category when --specialty was provided.
     """
     open_filter_panel(page)
-
-    catalog = fetch_category_catalog(page.context)
-    resolved = resolve_specialty(
-        filters.specialty,
-        catalog,
-        category_group=filters.category,
-    )
-
-    specialty_candidates = [resolved.secondary]
-    if filters.specialty.strip().casefold() != resolved.secondary.casefold():
-        specialty_candidates.append(filters.specialty.strip())
 
     country_ok = _select_mui_autocomplete(
         page,
@@ -163,22 +152,34 @@ def apply_filters(page, filters: BniFilters) -> BniCategory:
                 filters.region,
             )
 
-    specialty_ok = False
-    for candidate in specialty_candidates:
-        specialty_ok = _select_mui_autocomplete(
-            page,
-            r"Search Category|Pesquisar Categoria",
-            candidate,
+    resolved: BniCategory | None = None
+    specialty_ok = True
+    if filters.specialty:
+        catalog = fetch_category_catalog(page.context)
+        resolved = resolve_specialty(
+            filters.specialty,
+            catalog,
+            category_group=filters.category,
         )
-        if specialty_ok:
-            break
+        specialty_candidates = [resolved.secondary]
+        if filters.specialty.strip().casefold() != resolved.secondary.casefold():
+            specialty_candidates.append(filters.specialty.strip())
+        specialty_ok = False
+        for candidate in specialty_candidates:
+            specialty_ok = _select_mui_autocomplete(
+                page,
+                r"Search Category|Pesquisar Categoria",
+                candidate,
+            )
+            if specialty_ok:
+                break
 
     logger.info(
         "Filter fill status: country=%s region=%s specialty=%s (resolved=%r)",
         country_ok,
         region_ok if filters.region else "skipped",
-        specialty_ok,
-        resolved.display,
+        specialty_ok if filters.specialty else "skipped",
+        resolved.display if resolved else None,
     )
     if not country_ok:
         raise RuntimeError(
@@ -190,7 +191,8 @@ def apply_filters(page, filters: BniFilters) -> BniCategory:
             "Could not apply optional BNI --region filter. "
             "Run with --headed to inspect the Filter panel."
         )
-    if not specialty_ok:
+    if filters.specialty and not specialty_ok:
+        assert resolved is not None
         raise RuntimeError(
             f"Could not select BNI Search Category {resolved.secondary!r}. "
             "Run with --headed to inspect the Filter panel, or list options with "
@@ -285,7 +287,7 @@ def member_from_search_hit(hit: dict[str, Any]) -> BniMember:
 def search_members_page(
     page,
     filters: BniFilters,
-    resolved: BniCategory,
+    resolved: BniCategory | None,
     *,
     page_no: int = 1,
     per_page: int = 20,
@@ -301,8 +303,8 @@ def search_members_page(
         "last_name": None,
         "state": filters.region,
         "company_name": None,
-        "category_id": resolved.primary_id,
-        "speciality_id": resolved.secondary_id,
+        "category_id": resolved.primary_id if resolved else None,
+        "speciality_id": resolved.secondary_id if resolved else None,
         "locale_code": locale,
         "concept_id": 1,
         "page_no": page_no,

@@ -1,5 +1,3 @@
-import pytest
-
 from datascrapping.core.checkpoint import SeenStore
 from datascrapping.scrapers.bni.models import (
     BniFilters,
@@ -9,10 +7,10 @@ from datascrapping.scrapers.bni.models import (
 )
 
 
-def test_filters_require_specialty_only():
+def test_filters_allow_optional_specialty():
     BniFilters(specialty="Hearing", region=None).validate()
-    with pytest.raises(ValueError, match="specialty"):
-        BniFilters(specialty="", region="SP").validate()
+    BniFilters(specialty=None, region="SP").validate()
+    BniFilters().validate()
 
 
 def test_filters_from_extras_ok():
@@ -30,9 +28,10 @@ def test_filters_from_extras_specialty_only():
     assert filters.region is None
 
 
-def test_filters_from_extras_missing_specialty():
-    with pytest.raises(ValueError):
-        filters_from_extras({"region": "SP"})
+def test_filters_from_extras_without_specialty():
+    filters = filters_from_extras({"region": "SP"})
+    assert filters.specialty is None
+    assert filters.region == "SP"
 
 
 def test_member_to_row_has_csv_fields():
