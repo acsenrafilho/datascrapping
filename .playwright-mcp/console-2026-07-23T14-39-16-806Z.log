@@ -1,0 +1,4 @@
+[    1074ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ https://api.bniconnectglobal.com/core-api/public/translation?locale=en-US:0
+[    1076ms] [WARNING] Using offline translations. Reason: Failed to fetch @ https://www.bniconnectglobal.com/login/main.44862692ebb571a6cc3c.js:0
+[    1574ms] [VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) %o @ https://www.bniconnectglobal.com/login/:0
+[    2091ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://www.bniconnectglobal.com/login/none:0

@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+.env
+
+# Outputs and local data
+output/
+*.csv
+!tests/fixtures/**
+
+# Auth sessions (Playwright storageState)
+**/.auth/
+output/.auth/
+
+# Testing / coverage
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Playwright
+.playwright/
+playwright/.auth/

@@ -1,0 +1,16 @@
+[    4980ms] [LOG] {reload: yes} @ https://www.bni.com/:558
+[    6650ms] [LOG] JQMIGRATE: Migrate is installed, version 3.4.1 @ https://www.bni.com/wp-content/litespeed/js/288315c71f964079e0f9b3b3fc045935.js?ver=45935:1
+[    7092ms] [WARNING] Google Maps JavaScript API has been loaded directly without loading=async. This can result in suboptimal performance. For best-practice loading patterns please see https://goo.gle/js-api-loading @ https://maps.googleapis.com/maps/api/js?ver=1.0:327
+[    7119ms] [LOG] Initializing chatbot... @ https://bni-chatbot-five.vercel.app/chatbot-loader.js:2
+[    7120ms] [LOG] Iframe appended to body with width: 380px (mobile breakpoint at 360px) @ https://bni-chatbot-five.vercel.app/chatbot-loader.js:178
+[    7223ms] [LOG] Chatbot message: {type: chatbot-ready} @ https://bni-chatbot-five.vercel.app/chatbot-loader.js:226
+[    7860ms] [WARNING] [Meta pixel] 919513296437483 is unavailable on this website due to it's traffic permission settings. Go to https://www.facebook.com/business/help/572690630080597 to learn more. @ https://connect.facebook.net/en_US/fbevents.js:187
+[    8171ms] [LOG] Page loaded. @ https://www.bni.com/wp-content/plugins/safelayout-cute-preloader/assets/js/safelayout-cute-preloader.min.js:0
+[    8511ms] [LOG] Loader closed. @ https://www.bni.com/wp-content/plugins/safelayout-cute-preloader/assets/js/safelayout-cute-preloader.min.js:0
+[    9178ms] [LOG] Page loaded. @ https://www.bni.com/wp-content/plugins/safelayout-cute-preloader/assets/js/safelayout-cute-preloader.min.js:0
+[    9385ms] [WARNING] WP Statistics: Hit request failed with status 0 @ https://www.bni.com/wp-content/litespeed/js/20de18b70716baccbbf9b0bceeff163c.js?ver=f163c:0
+[    9385ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ https://www.bni.com/wp-json/wp-statistics/v2/hit:0
+[   10566ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ https://c.clarity.ms/c.gif?ctsa=mr&CtsSyncId=43C49DBAB2E04A5D81FFF54BF8E3F67D&MUID=018CF0F688CE60482898E76989E361DB:0
+[   10566ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ https://bnicom.bnitech.io/BNI-Hero-Banner-New.mp4:0
+[   10566ms] [ERROR] Failed to load resource: net::ERR_NETWORK_CHANGED @ https://bnicom.bnitech.io/Home-Mobile-Banner-new.mp4:0
+[   12199ms] [WARNING] Google Maps JavaScript API warning: NoApiKeys https://developers.google.com/maps/documentation/javascript/error-messages#no-api-keys @ https://maps.googleapis.com/maps-api-v3/api/js/65/10a/util.js:37

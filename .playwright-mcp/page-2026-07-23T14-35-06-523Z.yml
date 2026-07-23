@@ -1,0 +1,508 @@
+- generic [active] [ref=f1e1]:
+  - dialog [ref=f1e2]:
+    - generic [ref=f1e3]:
+      - generic [ref=f1e4]:
+        - img "logo" [ref=f1e7]
+        - button "Close banner" [ref=f1e8] [cursor=pointer]
+      - tabpanel "Consent" [ref=f1e12]:
+        - generic [ref=f1e14]:
+          - heading "This website uses cookies" [level=2] [ref=f1e15]
+          - generic [ref=f1e16]:
+            - text: We use cookies to personalize content and ads, to provide social media features and to analyze our traffic. We also share information about your use of our site with our social media, advertising and analytics partners who may combine it with other information that you’ve provided to them or that they’ve collected from your use of their services.
+            - link "Privacy Policy" [ref=f1e17] [cursor=pointer]:
+              - /url: https://www.bni.com/privacy-policy
+            - text: "|"
+            - link "Terms And Conditions" [ref=f1e18] [cursor=pointer]:
+              - /url: https://www.bni.com/terms-and-conditions
+        - generic [ref=f1e19]:
+          - group "Consent Selection" [ref=f1e25]:
+            - generic [ref=f1e27]:
+              - generic [ref=f1e28]:
+                - strong [ref=f1e30]: Necessary
+                - generic [ref=f1e31]:
+                  - checkbox "Necessary" [checked] [disabled]
+              - generic [ref=f1e32]:
+                - strong [ref=f1e34] [cursor=pointer]: Preferences
+                - switch "Preferences" [ref=f1e36] [cursor=pointer]
+              - generic [ref=f1e37]:
+                - strong [ref=f1e39] [cursor=pointer]: Statistics
+                - switch "Statistics" [ref=f1e41] [cursor=pointer]
+              - generic [ref=f1e42]:
+                - strong [ref=f1e44] [cursor=pointer]: Marketing
+                - switch "Marketing" [ref=f1e46] [cursor=pointer]
+          - link "Show details" [ref=f1e48] [cursor=pointer]:
+            - /url: "#"
+      - generic [ref=f1e52]:
+        - button "Use necessary cookies only" [ref=f1e53] [cursor=pointer]
+        - button "Allow selection" [ref=f1e54] [cursor=pointer]
+        - button "Allow all cookies" [ref=f1e55] [cursor=pointer]
+  - generic:
+    - generic:
+      - generic:
+        - img "Custom Preloader Icon"
+  - generic [ref=f1e57]:
+    - banner [ref=f1e58]:
+      - generic [ref=f1e59]:
+        - link [ref=f1e62] [cursor=pointer]:
+          - /url: https://www.bni.com/
+          - img "BNI" [ref=f1e63]
+        - generic [ref=f1e64]:
+          - text:    
+          - navigation [ref=f1e65]:
+            - text: 
+            - list [ref=f1e66]:
+              - listitem [ref=f1e67]:
+                - link "The BNI Experience" [ref=f1e68] [cursor=pointer]:
+                  - /url: https://www.bni.com/the-bni-experience/
+              - listitem [ref=f1e69]:
+                - link "Our Global Community" [ref=f1e70] [cursor=pointer]:
+                  - /url: https://www.bni.com/global-markets/
+              - listitem [ref=f1e71]:
+                - link "My BNI Story" [ref=f1e72] [cursor=pointer]:
+                  - /url: https://www.bni.com/my-bni-stories/
+              - listitem [ref=f1e73]:
+                - link "BNI Franchising" [ref=f1e74] [cursor=pointer]:
+                  - /url: https://bnifranchise.com/
+            - text:      
+            - list [ref=f1e75]:
+              - listitem [ref=f1e76] [cursor=pointer]:
+                - generic [ref=f1e77]:
+                  - text: About BNI
+                  - generic [ref=f1e78]: 
+                - generic [ref=f1e79]:
+                  - list [ref=f1e82]:
+                    - listitem [ref=f1e83]:
+                      - link "About Us" [ref=f1e84]:
+                        - /url: https://www.bni.com/about/
+                    - listitem [ref=f1e85]:
+                      - link "Leadership" [ref=f1e86]:
+                        - /url: https://www.bni.com/about/leadership/
+                    - listitem [ref=f1e87]:
+                      - link "National Directors" [ref=f1e88]:
+                        - /url: https://www.bni.com/about/national-directors/
+                    - listitem [ref=f1e89]:
+                      - link "Our Founder" [ref=f1e90]:
+                        - /url: https://www.bni.com/about/our-founder/
+                    - listitem [ref=f1e91]:
+                      - link [ref=f1e92]:
+                        - /url: https://www.bnifoundation.org/
+                        - text: BNI
+                        - superscript [ref=f1e93]: ®
+                        - text: Foundation
+                  - list [ref=f1e96]:
+                    - listitem [ref=f1e97]:
+                      - link "Blog & Insights" [ref=f1e98]:
+                        - /url: https://www.bni.com/the-latest/#blog-and-news
+                    - listitem [ref=f1e99]:
+                      - link "In The Media" [ref=f1e100]:
+                        - /url: https://www.bni.com/media/
+                    - listitem [ref=f1e101]:
+                      - link "Networking Tips" [ref=f1e102]:
+                        - /url: https://www.bni.com/category/networking-tips/
+                    - listitem [ref=f1e103]:
+                      - link "Global Events" [ref=f1e104]:
+                        - /url: https://www.bni.com/global-events/
+                    - listitem [ref=f1e105]:
+                      - link "Careers" [ref=f1e106]:
+                        - /url: https://www.bni.com/about/careers/
+                  - list [ref=f1e109]:
+                    - listitem [ref=f1e110]:
+                      - link "Chapter Map" [ref=f1e111]:
+                        - /url: https://www.bni.com/chapter-map/
+                    - listitem [ref=f1e112]:
+                      - link "Start a Chapter" [ref=f1e113]:
+                        - /url: https://www.bni.com/start-a-chapter/
+                    - listitem [ref=f1e114]:
+                      - link "Exclusive Member Benefits" [ref=f1e115]:
+                        - /url: https://www.bni.com/exclusive-member-benefits/
+                    - listitem [ref=f1e116]:
+                      - link "Contact Us" [ref=f1e117]:
+                        - /url: https://www.bni.com/contact-us/
+                  - generic [ref=f1e118]:
+                    - search [ref=f1e120]:
+                      - generic [ref=f1e121]:
+                        - textbox "Search" [ref=f1e122]
+                        - button [ref=f1e123]:
+                          - generic [ref=f1e124]: 
+                    - link [ref=f1e126]:
+                      - /url: https://web.cvent.com/event/3f7f5650-43fa-4f8e-b1f8-a458c94b8d96/summary
+                    - list [ref=f1e128]:
+                      - listitem [ref=f1e129]:
+                        - link [ref=f1e130]:
+                          - /url: https://www.facebook.com/BNIOfficialPage/
+                          - generic [ref=f1e131]: 
+                      - listitem [ref=f1e132]:
+                        - link [ref=f1e133]:
+                          - /url: https://www.linkedin.com/company/bni
+                          - generic [ref=f1e134]: 
+                      - listitem [ref=f1e135]:
+                        - link [ref=f1e136]:
+                          - /url: https://www.instagram.com/bni.global
+                          - generic [ref=f1e137]: 
+                      - listitem [ref=f1e138]:
+                        - link [ref=f1e139]:
+                          - /url: https://www.youtube.com/user/BNIOfficialChannel
+                          - generic [ref=f1e140]: 
+                      - listitem [ref=f1e141]:
+                        - link [ref=f1e142]:
+                          - /url: https://twitter.com/bni_official_pg
+                          - generic [ref=f1e143]: 
+              - listitem [ref=f1e144]:
+                - link "support@bni.com" [ref=f1e145] [cursor=pointer]:
+                  - /url: mailto:support@bni.com
+                  - generic [ref=f1e146]: 
+                  - text: support@bni.com
+              - listitem [ref=f1e147]:
+                - link "Get Invited" [ref=f1e148] [cursor=pointer]:
+                  - /url: https://www.bni.com/find-a-chapter/
+              - text:  
+            - text:      
+    - main [ref=f1e149]:
+      - generic [ref=f1e150]:
+        - link "Get Invited" [ref=f1e154] [cursor=pointer]:
+          - /url: https://www.bni.com/find-a-chapter/
+        - generic [ref=f1e156]:
+          - generic [ref=f1e157]:
+            - heading [level=4] [ref=f1e159]:
+              - text: Join
+              - generic [ref=f1e160]:
+                - text: BNI
+                - superscript [ref=f1e161]: ®
+              - text: ", the world’s largest and most successful referral networking organization"
+            - paragraph [ref=f1e163]: Discover how BNI Members around the world meet each week locally to pass millions of referrals to each other worth billions of dollars in revenue for businesses just like yours.
+          - generic [ref=f1e164]:
+            - link [ref=f1e167] [cursor=pointer]:
+              - /url: https://www.youtube.com/watch?v=JTLWbaIKJuw
+              - generic [ref=f1e168]: 
+            - generic [ref=f1e170]:
+              - generic [ref=f1e172]:
+                - heading "355K+" [level=4] [ref=f1e173]
+                - generic [ref=f1e174]:
+                  - paragraph [ref=f1e175]: Global Members
+                  - generic [ref=f1e176]:
+                    - text: As of 31
+                    - superscript [ref=f1e177]: st
+                    - text: December, 2025
+              - generic [ref=f1e179]:
+                - heading "11,800+" [level=4] [ref=f1e180]
+                - paragraph [ref=f1e182]: Global Chapters
+              - generic [ref=f1e184]:
+                - heading [level=4] [ref=f1e185]:
+                  - superscript [ref=f1e187]: $
+                  - text: 26.9B
+                - generic [ref=f1e188]:
+                  - paragraph [ref=f1e189]: Member Generated Business
+                  - generic [ref=f1e190]: Last 12 Months*
+              - generic [ref=f1e192]:
+                - heading "78" [level=4] [ref=f1e193]
+                - paragraph [ref=f1e195]: Countries
+              - generic [ref=f1e198]:
+                - heading "17.8M" [level=4] [ref=f1e199]
+                - generic [ref=f1e200]:
+                  - paragraph [ref=f1e201]: Member Referrals
+                  - generic [ref=f1e202]: Last 12 Months*
+          - generic [ref=f1e203]:
+            - paragraph [ref=f1e204]: See why 355K+ entrepreneurs like you chose BNI to grow their business
+            - link "Find a Chapter" [ref=f1e205] [cursor=pointer]:
+              - /url: https://www.bni.com/find-a-chapter/
+      - generic [ref=f1e207]:
+        - generic [ref=f1e210]:
+          - generic [ref=f1e212]:
+            - heading "Beyond Networking" [level=6] [ref=f1e213]
+            - heading "Build Your Professional Network" [level=4] [ref=f1e214]
+            - paragraph [ref=f1e215]: Build a trusted network of like-minded professionals who not only care about your success but are eager to help you achieve it.
+          - generic [ref=f1e221]:
+            - paragraph [ref=f1e222]: BNI isn’t just networking—it’s a game changer that transforms businesses and lives.
+            - generic [ref=f1e223]: Ameer AhammedNada Happiness Trading, Oman
+        - generic [ref=f1e226]:
+          - generic [ref=f1e228]:
+            - heading "Scale Up" [level=6] [ref=f1e229]
+            - heading "Grow Your Business Exponentially" [level=4] [ref=f1e230]
+            - paragraph [ref=f1e231]: Our global presence together with a proven networking system results in unmatched business opportunities. Exchange qualified referrals and watch your business grow.
+          - generic [ref=f1e234]:
+            - img "Paul-Tommey" [ref=f1e236]
+            - generic [ref=f1e238]:
+              - paragraph [ref=f1e239]: I’ve achieved a great ROI with $736,000 in referrals and $110,000 in return.
+              - generic [ref=f1e240]: Paul TommeyRealtor-Property Manager | USA
+        - generic [ref=f1e243]:
+          - generic [ref=f1e245]:
+            - heading "Lifelong Learning" [level=6] [ref=f1e246]
+            - heading "Become a Master Connector" [level=4] [ref=f1e247]
+            - paragraph [ref=f1e248]: Grow to the Master Connector level, where you actively help your BNI Chapter to thrive and increase revenue for each Member.
+          - generic [ref=f1e251]:
+            - img "Ernest Buabeng" [ref=f1e253]
+            - generic [ref=f1e255]:
+              - paragraph [ref=f1e256]: I used to struggle to get trusted logistic partners in other countries. Since I joined BNI, I get credible and trusted partners in just an hour after asking.
+              - generic [ref=f1e257]: Ernest BuabengClearing & Forwarding | Ghana
+      - generic [ref=f1e258]:
+        - generic [ref=f1e261]:
+          - heading "3 Steps to Success" [level=4] [ref=f1e262]
+          - paragraph [ref=f1e263]: Get invited to a BNI networking meeting and witness the power of referrals in action.
+          - list [ref=f1e265]:
+            - listitem [ref=f1e266]:
+              - paragraph [ref=f1e267]: Visit a BNI chapter
+              - generic [ref=f1e268]: and experience the power of the BNI network
+            - listitem [ref=f1e269]:
+              - paragraph [ref=f1e270]: Meet the Members
+              - generic [ref=f1e271]: and learn how they can help you grow your business
+            - listitem [ref=f1e272]:
+              - paragraph [ref=f1e273]: Apply
+              - generic [ref=f1e274]: to become a Member of a BNI Chapter
+          - link "Get Invited" [ref=f1e275] [cursor=pointer]:
+            - /url: https://www.bni.com/find-a-chapter/
+        - generic [ref=f1e276]:
+          - generic [ref=f1e277]:
+            - generic [ref=f1e278]:
+              - paragraph [ref=f1e279]: BNI has shown me how to raise the bar and rewrite my business blueprint.
+              - generic [ref=f1e280]: Farzana Suri,Coaching, India
+            - generic [ref=f1e282]:
+              - paragraph [ref=f1e283]: Over 86% of my clients come through referrals from BNI Members.
+              - generic [ref=f1e284]: Jennie B,Sales, United States
+            - generic [ref=f1e286]:
+              - paragraph [ref=f1e287]: BNI has been a game changer for my business.
+              - generic [ref=f1e288]: Manuel Gutierrez,Goper Coma S.L, Spain
+            - generic [ref=f1e290]:
+              - paragraph [ref=f1e291]: Friendships, connection & likeminded people make the added bonus of increased business & income worthwhile.
+              - generic [ref=f1e292]:
+                - img "Matthew Stevens" [ref=f1e293]
+                - generic [ref=f1e294]: Matthew S,Real Estate, Australia
+            - generic [ref=f1e295]:
+              - paragraph [ref=f1e296]: Today we own a Pvt. Ltd. Firm that has achieved Rs 1.5 Cr in business within 9 months, with 95% of it coming from BNI.
+              - generic [ref=f1e297]:
+                - img "Bhavesh-Vora" [ref=f1e298]
+                - generic [ref=f1e299]: Bhavesh Vora,Engineering Solutions, India
+            - generic [ref=f1e300]:
+              - paragraph [ref=f1e301]: Being part of BNI has been one of the most valuable decisions for my business.
+              - generic [ref=f1e302]: Dr Prince Sodha,Founder & Creative Director, India
+            - generic [ref=f1e304]:
+              - paragraph [ref=f1e305]: I secured my first piece of business through relationship building within just 3 months.
+              - generic [ref=f1e306]: Payal Ghadge,IT Services, India
+          - generic [ref=f1e308]:
+            - generic [ref=f1e309]:
+              - paragraph [ref=f1e310]: BNI has shown me how to raise the bar and rewrite my business blueprint.
+              - generic [ref=f1e311]: Farzana Suri,Coaching, India
+            - generic [ref=f1e313]:
+              - paragraph [ref=f1e314]: Over 86% of my clients come through referrals from BNI Members.
+              - generic [ref=f1e315]: Jennie B,Sales, United States
+            - generic [ref=f1e317]:
+              - paragraph [ref=f1e318]: BNI has been a game changer for my business.
+              - generic [ref=f1e319]: Manuel Gutierrez,Goper Coma S.L, Spain
+            - generic [ref=f1e321]:
+              - paragraph [ref=f1e322]: Friendships, connection & likeminded people make the added bonus of increased business & income worthwhile.
+              - generic [ref=f1e323]:
+                - img "Matthew Stevens" [ref=f1e324]
+                - generic [ref=f1e325]: Matthew S,Real Estate, Australia
+            - generic [ref=f1e326]:
+              - paragraph [ref=f1e327]: Today we own a Pvt. Ltd. Firm that has achieved Rs 1.5 Cr in business within 9 months, with 95% of it coming from BNI.
+              - generic [ref=f1e328]:
+                - img "Bhavesh-Vora" [ref=f1e329]
+                - generic [ref=f1e330]: Bhavesh Vora,Engineering Solutions, India
+            - generic [ref=f1e331]:
+              - paragraph [ref=f1e332]: Being part of BNI has been one of the most valuable decisions for my business.
+              - generic [ref=f1e333]: Dr Prince Sodha,Founder & Creative Director, India
+            - generic [ref=f1e335]:
+              - paragraph [ref=f1e336]: I secured my first piece of business through relationship building within just 3 months.
+              - generic [ref=f1e337]: Payal Ghadge,IT Services, India
+        - generic [ref=f1e339]:
+          - generic [ref=f1e340]:
+            - generic [ref=f1e341]:
+              - paragraph [ref=f1e342]: There is no strategy that benefits so many areas in one´s life than BNI!
+              - generic [ref=f1e343]: Dr. Adriana Cortés,Health & Wellness, Colombia
+            - generic [ref=f1e345]:
+              - paragraph [ref=f1e346]: I've shifted my business to one developed via referrals with zero competition.
+              - generic [ref=f1e347]: Kent Raymer,Construction, United States
+            - generic [ref=f1e349]:
+              - paragraph [ref=f1e350]: BNI has been a fundamental networking tool for my and my company’s growth.
+              - generic [ref=f1e351]: Rafael Lins,Pest Control, Brazil
+            - generic [ref=f1e353]:
+              - paragraph [ref=f1e354]: I highly recommend BNI to every person who is looking to multiply business.
+              - generic [ref=f1e355]: Lynne R,Wellness Coach, Canada
+            - generic [ref=f1e357]:
+              - paragraph [ref=f1e358]: BNI expanded my business network and improved communication, boosting credibility and service.
+              - generic [ref=f1e359]: Jackson Kikonyogo,Events, Uganda
+            - generic [ref=f1e361]:
+              - paragraph [ref=f1e362]: 90% of my business comes through BNI referrals.
+              - generic [ref=f1e363]: Ankit Patel,Financial Services, India
+            - generic [ref=f1e365]:
+              - paragraph [ref=f1e366]: BNI has been a transformational journey for me both personally and professionally.
+              - generic [ref=f1e367]: Abhishek Aggarwal,Retail, India
+            - generic [ref=f1e369]:
+              - paragraph [ref=f1e370]: Oggi il 70% del mio business deriva dalle referenze.
+              - generic [ref=f1e371]: Milena Mengoli ,Digital Marketing, Italy
+          - generic [ref=f1e373]:
+            - generic [ref=f1e374]:
+              - paragraph [ref=f1e375]: There is no strategy that benefits so many areas in one´s life than BNI!
+              - generic [ref=f1e376]: Dr. Adriana Cortés,Health & Wellness, Colombia
+            - generic [ref=f1e378]:
+              - paragraph [ref=f1e379]: I've shifted my business to one developed via referrals with zero competition.
+              - generic [ref=f1e380]: Kent Raymer,Construction, United States
+            - generic [ref=f1e382]:
+              - paragraph [ref=f1e383]: BNI has been a fundamental networking tool for my and my company’s growth.
+              - generic [ref=f1e384]: Rafael Lins,Pest Control, Brazil
+            - generic [ref=f1e386]:
+              - paragraph [ref=f1e387]: I highly recommend BNI to every person who is looking to multiply business.
+              - generic [ref=f1e388]: Lynne R,Wellness Coach, Canada
+            - generic [ref=f1e390]:
+              - paragraph [ref=f1e391]: BNI expanded my business network and improved communication, boosting credibility and service.
+              - generic [ref=f1e392]: Jackson Kikonyogo,Events, Uganda
+            - generic [ref=f1e394]:
+              - paragraph [ref=f1e395]: 90% of my business comes through BNI referrals.
+              - generic [ref=f1e396]: Ankit Patel,Financial Services, India
+            - generic [ref=f1e398]:
+              - paragraph [ref=f1e399]: BNI has been a transformational journey for me both personally and professionally.
+              - generic [ref=f1e400]: Abhishek Aggarwal,Retail, India
+            - generic [ref=f1e402]:
+              - paragraph [ref=f1e403]: Oggi il 70% del mio business deriva dalle referenze.
+              - generic [ref=f1e404]: Milena Mengoli ,Digital Marketing, Italy
+        - generic [ref=f1e406]: "Disclaimer: This information is based on historical BNI Member self-reported data as of December 31st, 2025, and represents collective results from BNI Members worldwide over the last 12 months. Errors in self-reporting of data or in subsequent analysis are possible. Therefore, the information herein should only be viewed as representative in nature."
+    - contentinfo [ref=f1e409]:
+      - generic [ref=f1e410]:
+        - generic [ref=f1e411]:
+          - list [ref=f1e413]:
+            - listitem [ref=f1e414]:
+              - link "The BNI Experience" [ref=f1e415] [cursor=pointer]:
+                - /url: https://www.bni.com/the-bni-experience/
+            - listitem [ref=f1e416]:
+              - link "Our Global Community" [ref=f1e417] [cursor=pointer]:
+                - /url: https://www.bni.com/global-markets/
+            - listitem [ref=f1e418]:
+              - link "My BNI Story" [ref=f1e419] [cursor=pointer]:
+                - /url: https://www.bni.com/my-bni-stories/
+            - listitem [ref=f1e420]:
+              - link "BNI Franchising" [ref=f1e421] [cursor=pointer]:
+                - /url: https://bnifranchise.com/
+          - generic [ref=f1e422]:
+            - text: 
+            - list [ref=f1e425]:
+              - listitem [ref=f1e426]:
+                - link "About Us" [ref=f1e427] [cursor=pointer]:
+                  - /url: https://www.bni.com/about/
+              - listitem [ref=f1e428]:
+                - link "Leadership" [ref=f1e429] [cursor=pointer]:
+                  - /url: https://www.bni.com/about/leadership/
+              - listitem [ref=f1e430]:
+                - link "National Directors" [ref=f1e431] [cursor=pointer]:
+                  - /url: https://www.bni.com/about/national-directors/
+              - listitem [ref=f1e432]:
+                - link "Our Founder" [ref=f1e433] [cursor=pointer]:
+                  - /url: https://www.bni.com/about/our-founder/
+              - listitem [ref=f1e434]:
+                - link [ref=f1e435] [cursor=pointer]:
+                  - /url: https://www.bnifoundation.org/
+                  - text: BNI
+                  - superscript [ref=f1e436]: ®
+                  - text: Foundation
+          - generic [ref=f1e437]:
+            - text: 
+            - list [ref=f1e440]:
+              - listitem [ref=f1e441]:
+                - link "Blog & Insights" [ref=f1e442] [cursor=pointer]:
+                  - /url: https://www.bni.com/the-latest/#blog-and-news
+              - listitem [ref=f1e443]:
+                - link "In The Media" [ref=f1e444] [cursor=pointer]:
+                  - /url: https://www.bni.com/media/
+              - listitem [ref=f1e445]:
+                - link "Networking Tips" [ref=f1e446] [cursor=pointer]:
+                  - /url: https://www.bni.com/category/networking-tips/
+              - listitem [ref=f1e447]:
+                - link "Global Events" [ref=f1e448] [cursor=pointer]:
+                  - /url: https://www.bni.com/global-events/
+              - listitem [ref=f1e449]:
+                - link "Careers" [ref=f1e450] [cursor=pointer]:
+                  - /url: https://www.bni.com/about/careers/
+          - generic [ref=f1e451]:
+            - text: 
+            - list [ref=f1e454]:
+              - listitem [ref=f1e455]:
+                - link "Chapter Map" [ref=f1e456] [cursor=pointer]:
+                  - /url: https://www.bni.com/chapter-map/
+              - listitem [ref=f1e457]:
+                - link "Start a Chapter" [ref=f1e458] [cursor=pointer]:
+                  - /url: https://www.bni.com/start-a-chapter/
+              - listitem [ref=f1e459]:
+                - link "Exclusive Member Benefits" [ref=f1e460] [cursor=pointer]:
+                  - /url: https://www.bni.com/exclusive-member-benefits/
+              - listitem [ref=f1e461]:
+                - link "Contact Us" [ref=f1e462] [cursor=pointer]:
+                  - /url: https://www.bni.com/contact-us/
+          - generic [ref=f1e463]:
+            - generic [ref=f1e464]: Member Services 
+            - list [ref=f1e467]:
+              - listitem [ref=f1e468]:
+                - link "BNI Connect" [ref=f1e469] [cursor=pointer]:
+                  - /url: https://www.bniconnectglobal.com/
+              - listitem [ref=f1e470]:
+                - link "BNI Academy" [ref=f1e471] [cursor=pointer]:
+                  - /url: https://mybni.com/
+              - listitem [ref=f1e472]:
+                - link "BNI Brandshare" [ref=f1e473] [cursor=pointer]:
+                  - /url: http://bnibrandshare.com/
+              - listitem [ref=f1e474]:
+                - link "BNI US Store" [ref=f1e475] [cursor=pointer]:
+                  - /url: http://www.bnipromos.com/
+              - listitem [ref=f1e476]:
+                - link "BNI Global Store" [ref=f1e477] [cursor=pointer]:
+                  - /url: https://bniglobalstore.com/
+          - list [ref=f1e479]:
+            - listitem [ref=f1e480]:
+              - generic [ref=f1e481]: 
+              - link "In U.S. (800)-825-8286" [ref=f1e482] [cursor=pointer]:
+                - /url: tel:8008258286
+                - generic [ref=f1e483]: In U.S.
+                - text: (800)-825-8286
+            - listitem [ref=f1e484]:
+              - generic [ref=f1e485]: 
+              - link "Outside U.S. support@bni.com" [ref=f1e486] [cursor=pointer]:
+                - /url: mailto:support@bni.com
+                - generic [ref=f1e487]: Outside U.S.
+                - text: support@bni.com
+            - listitem [ref=f1e488]:
+              - generic [ref=f1e489]: 
+              - generic [ref=f1e490]: 3430 Toringdon Way, Suite 300 Charlotte, NC 28277
+        - generic [ref=f1e491]:
+          - generic [ref=f1e492]:
+            - generic [ref=f1e493]:
+              - heading [level=5] [ref=f1e494]:
+                - text: BNI SuccessNet
+                - superscript [ref=f1e495]: TM
+              - paragraph [ref=f1e496]: Sign up for exclusive networking tips and more.
+            - generic: 
+          - generic [ref=f1e498]:
+            - text: Follow BNI
+            - list [ref=f1e499]:
+              - listitem [ref=f1e500]:
+                - link [ref=f1e501] [cursor=pointer]:
+                  - /url: https://www.facebook.com/BNIOfficialPage/
+                  - generic [ref=f1e502]: 
+              - listitem [ref=f1e503]:
+                - link [ref=f1e504] [cursor=pointer]:
+                  - /url: https://www.linkedin.com/company/bni
+                  - generic [ref=f1e505]: 
+              - listitem [ref=f1e506]:
+                - link [ref=f1e507] [cursor=pointer]:
+                  - /url: https://www.instagram.com/bni.global
+                  - generic [ref=f1e508]: 
+              - listitem [ref=f1e509]:
+                - link [ref=f1e510] [cursor=pointer]:
+                  - /url: https://www.youtube.com/user/BNIOfficialChannel
+                  - generic [ref=f1e511]: 
+              - listitem [ref=f1e512]:
+                - link [ref=f1e513] [cursor=pointer]:
+                  - /url: https://twitter.com/bni_official_pg
+                  - generic [ref=f1e514]: 
+      - text: 
+    - list [ref=f1e517]:
+      - listitem [ref=f1e518]:
+        - link "Cookie Policy" [ref=f1e519] [cursor=pointer]:
+          - /url: https://www.bni.com/cookie-policy/
+      - listitem [ref=f1e520]:
+        - link "Privacy Policy" [ref=f1e521] [cursor=pointer]:
+          - /url: https://bnitos.com/privacy/
+      - listitem [ref=f1e522]:
+        - link "Terms and Conditions" [ref=f1e523] [cursor=pointer]:
+          - /url: https://bnitos.com/tos/
+      - listitem [ref=f1e524]: © 2026 BNI Global, LLC
+  - generic:
+    - emphasis
+  - iframe [ref=f1e526]:
+    

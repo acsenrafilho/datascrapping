@@ -1,0 +1,38 @@
+- generic [ref=f1e6]:
+  - generic [ref=f1e7]:
+    - generic [ref=f1e12]:
+      - paragraph [ref=f1e14]: BNI Connect is an online social media platform for BNI Members only to participate in BNI Connect, please join a local BNI chapter.
+      - generic [ref=f1e15]:
+        - generic [ref=f1e16]: Copyright 2018 BNI. All rights Reserved
+        - list [ref=f1e17]:
+          - listitem [ref=f1e18]:
+            - link "Terms of use" [ref=f1e19] [cursor=pointer]:
+              - /url: http://bnitos.com/
+          - text: "|"
+          - listitem [ref=f1e20]:
+            - link "Privacy Policy" [ref=f1e21] [cursor=pointer]:
+              - /url: http://bnitos.com/privacy.html
+          - text: "|"
+          - listitem [ref=f1e22]:
+            - link "Browser Policy" [ref=f1e23] [cursor=pointer]:
+              - /url: http://bnitos.com/browser.html
+    - generic [ref=f1e24]:
+      - heading "Sign-in to BNI Connect" [level=3] [ref=f1e26]
+      - generic [ref=f1e28]:
+        - generic [ref=f1e31]:
+          - generic [ref=f1e32]: Username
+          - textbox "Username" [active] [ref=f1e34]
+        - generic [ref=f1e37]:
+          - generic [ref=f1e38]: Password
+          - textbox "Password" [ref=f1e40]
+        - generic [ref=f1e41]:
+          - button "Sign In" [ref=f1e43] [cursor=pointer]
+          - link "Forgotten Username/Password" [ref=f1e45] [cursor=pointer]:
+            - /url: /web/open/forgetPassword?concept=connect
+  - generic [ref=f1e46]:
+    - link [ref=f1e47] [cursor=pointer]:
+      - /url: https://itunes.apple.com/app/bni-connect-mobile/id1212875170
+      - img "App Store Download" [ref=f1e48]
+    - link [ref=f1e49] [cursor=pointer]:
+      - /url: https://play.google.com/store/apps/details?id=com.bnimobile.global
+      - img "Play Store Download" [ref=f1e50]
