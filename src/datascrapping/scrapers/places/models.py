@@ -51,6 +51,39 @@ ENRICHED_EXTRA_FIELDS = (
 
 ENRICHED_CSV_FIELDS = CSV_FIELDS + ENRICHED_EXTRA_FIELDS
 
+FULL_EXTRA_FIELDS = (
+    "cnpj",
+    "cnpj_formatted",
+    "razao_social",
+    "nome_fantasia",
+    "situacao",
+    "situacao_codigo",
+    "cnae",
+    "cnae_descricao",
+    "cnaes_secundarios",
+    "fiscal_tipo_logradouro",
+    "fiscal_logradouro",
+    "fiscal_numero",
+    "fiscal_complemento",
+    "fiscal_bairro",
+    "fiscal_cep",
+    "fiscal_municipio",
+    "fiscal_uf",
+    "fiscal_codigo_ibge",
+    "fiscal_endereco",
+    "natureza_juridica",
+    "porte",
+    "matriz_filial",
+    "federal_phone_1",
+    "federal_phone_2",
+    "federal_email",
+    "cnpj_status",
+    "cnpj_status_reason",
+    "cnpj_scraped_at",
+)
+
+FULL_CSV_FIELDS = ENRICHED_CSV_FIELDS + FULL_EXTRA_FIELDS
+
 DEFAULT_NICHE = "aasi"
 DEFAULT_MAX_QUOTA = 20000
 TERMS_PATH = Path(__file__).with_name("terms.json")
@@ -197,13 +230,60 @@ def resolve_places_csv(from_path: str | Path) -> Path:
     raise ValueError(f"Input path does not exist: {path}")
 
 
+@dataclass
+class PlacesCnpjFilters:
+    from_path: str = ""
+    cnpj: str = ""
+
+    def validate(self) -> None:
+        if not self.from_path and not self.cnpj:
+            raise ValueError(
+                "places.cnpj requires --from (places_enriched.csv or folder) "
+                "and/or --cnpj"
+            )
+
+
+def cnpj_filters_from_extras(extras: dict[str, Any]) -> PlacesCnpjFilters:
+    from_path = str(extras.get("from_path") or "").strip()
+    cnpj = str(extras.get("cnpj") or "").strip()
+    filters = PlacesCnpjFilters(from_path=from_path, cnpj=cnpj)
+    filters.validate()
+    return filters
+
+
+def resolve_enriched_csv(from_path: str | Path) -> Path:
+    """Resolve --from to an existing places_enriched.csv file."""
+    path = Path(from_path).expanduser().resolve()
+    if path.is_file():
+        if path.name != "places_enriched.csv":
+            raise ValueError(
+                f"Expected a places_enriched.csv file, got {path.name!r} ({path})"
+            )
+        return path
+    if path.is_dir():
+        candidate = path / "places_enriched.csv"
+        if candidate.is_file():
+            return candidate
+        raise ValueError(f"No places_enriched.csv found in folder {path}")
+    raise ValueError(f"Input path does not exist: {path}")
+
+
 def empty_enriched_extras() -> dict[str, str]:
     return {key: "" for key in ENRICHED_EXTRA_FIELDS}
+
+
+def empty_full_extras() -> dict[str, str]:
+    return {key: "" for key in FULL_EXTRA_FIELDS}
 
 
 def base_row_from_places(row: dict[str, str]) -> dict[str, str]:
     """Copy stage-1 columns; keep email empty until enrichment fills it."""
     return {key: str(row.get(key, "") or "") for key in CSV_FIELDS}
+
+
+def base_row_from_enriched(row: dict[str, str]) -> dict[str, str]:
+    """Copy stage-1+2 columns for places_full.csv."""
+    return {key: str(row.get(key, "") or "") for key in ENRICHED_CSV_FIELDS}
 
 
 def join_extra(values: list[str], sep: str = "|") -> str:

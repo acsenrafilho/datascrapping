@@ -1,10 +1,13 @@
 from datascrapping.scrapers.places.models import (
     CSV_FIELDS,
     ENRICHED_CSV_FIELDS,
+    FULL_CSV_FIELDS,
     PlaceRow,
+    cnpj_filters_from_extras,
     filters_from_extras,
     known_niches,
     load_search_terms,
+    resolve_enriched_csv,
     resolve_places_csv,
     run_slug,
     website_filters_from_extras,
@@ -119,3 +122,35 @@ def test_website_filters_and_resolve(tmp_path):
     csv_path.write_text("place_id\n", encoding="utf-8")
     assert resolve_places_csv(csv_path) == csv_path.resolve()
     assert resolve_places_csv(tmp_path) == csv_path.resolve()
+
+
+def test_full_csv_extends_enriched():
+    assert ENRICHED_CSV_FIELDS == FULL_CSV_FIELDS[: len(ENRICHED_CSV_FIELDS)]
+    assert "razao_social" in FULL_CSV_FIELDS
+    assert "cnpj_status" in FULL_CSV_FIELDS
+    assert "fiscal_endereco" in FULL_CSV_FIELDS
+
+
+def test_cnpj_filters_and_resolve_enriched(tmp_path):
+    try:
+        cnpj_filters_from_extras({})
+        assert False, "expected ValueError"
+    except ValueError as exc:
+        assert "--from" in str(exc) or "--cnpj" in str(exc)
+
+    filters = cnpj_filters_from_extras({"cnpj": "19131243000197"})
+    assert filters.cnpj == "19131243000197"
+    assert filters.from_path == ""
+
+    enriched = tmp_path / "places_enriched.csv"
+    enriched.write_text("place_id\n", encoding="utf-8")
+    assert resolve_enriched_csv(enriched) == enriched.resolve()
+    assert resolve_enriched_csv(tmp_path) == enriched.resolve()
+
+    wrong = tmp_path / "places.csv"
+    wrong.write_text("place_id\n", encoding="utf-8")
+    try:
+        resolve_enriched_csv(wrong)
+        assert False, "expected ValueError"
+    except ValueError as exc:
+        assert "places_enriched.csv" in str(exc)

@@ -75,4 +75,16 @@ PLACES_EXAMPLES = (
         "run places.website --from output/places/campinas_sp_aasi --dry-run",
         "Count rows with website; no HTTP",
     ),
+    (
+        "run places.cnpj --from output/places/campinas_sp_aasi/places_enriched.csv",
+        "BrasilAPI CNPJ → places_full.csv (razão social, CNAE, endereço fiscal)",
+    ),
+    (
+        "run places.cnpj --from output/places/campinas_sp_aasi --dry-run",
+        "Count rows with cnpj_raw; no HTTP",
+    ),
+    (
+        "run places.cnpj --cnpj 19131243000197",
+        "Smoke: single CNPJ → output/places/cnpj_manual/places_full.csv",
+    ),
 )

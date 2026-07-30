@@ -153,7 +153,34 @@ Extra columns include `email`, `emails_extra`, `phones_extra`, `cnpj_raw`, `soci
 
 Respect `robots.txt` and site ToS. Gemini is optional and fail-soft if the `llm` extra or key is missing.
 
-**Smoke (manual):** pick a small BR city, run niche `aasi`, confirm most rows have name + phone + address; then run `places.website --skip-llm` on that CSV and confirm e-mail when the site exposes `mailto:` / contact.
+### Stage 3 — `places.cnpj` (federal registry)
+
+Reads `places_enriched.csv`, looks up each non-empty `cnpj_raw` on BrasilAPI (`GET /api/cnpj/v1/{cnpj}`), and writes commercial federal fields. Fail-closed on invalid CNPJ (row still emitted with `cnpj_status=skipped_invalid`). No API key required.
+
+```bash
+poetry run datascrapping run places.cnpj \
+  --from output/places/campinas_sp_aasi/places_enriched.csv
+
+# Folder form
+poetry run datascrapping run places.cnpj \
+  --from output/places/campinas_sp_aasi
+
+# Smoke: single CNPJ (no CSV)
+poetry run datascrapping run places.cnpj --cnpj 19131243000197
+
+# Dry-run (count rows with cnpj_raw; no HTTP)
+poetry run datascrapping run places.cnpj \
+  --from output/places/campinas_sp_aasi --dry-run
+```
+
+Outputs (stage 3):
+
+- CSV: `places_full.csv` (same folder as input; or `output/places/cnpj_manual/` for `--cnpj` alone)
+- Checkpoint: `places.cnpj.seen.json` (resume by `place_id`)
+
+Extra columns include `razao_social`, `nome_fantasia`, `situacao`, `cnae`, `cnae_descricao`, `fiscal_*` (endereço fiscal), `natureza_juridica`, `porte`, `federal_phone_*`, `federal_email`, `cnpj_status`, `cnpj_status_reason`, `cnpj_scraped_at`. Does **not** overwrite website `email`.
+
+**Smoke (manual):** pick a small BR city, run niche `aasi`, confirm most rows have name + phone + address; then run `places.website --skip-llm` on that CSV and confirm e-mail when the site exposes `mailto:` / contact; then run `places.cnpj` and confirm `razao_social` / `situacao` when `cnpj_raw` is valid.
 
 ## Registered scrapers
 
@@ -169,13 +196,14 @@ Respect `robots.txt` and site ToS. Gemini is optional and fail-soft if the `llm`
 | `bni` | BNI Connect → CSV |
 | `places.search` | Google Places → CSV (prospection) |
 | `places.website` | Website crawl → enrich places.csv (e-mail) |
+| `places.cnpj` | BrasilAPI CNPJ → enrich places_enriched.csv (federal) |
 
 ## Architecture
 
 - `src/datascrapping/core/` — contract, registry, HTTP, browser helpers, sinks, checkpoint
 - `src/datascrapping/scrapers/blog/` — blog crawlers
 - `src/datascrapping/scrapers/bni/` — auth, search, profile, CSV orchestration
-- `src/datascrapping/scrapers/places/` — Places search + website enrichment → CSV
+- `src/datascrapping/scrapers/places/` — Places search + website + CNPJ enrichment → CSV
 - `src/datascrapping/cli.py` — Typer CLI
 
 ## Development

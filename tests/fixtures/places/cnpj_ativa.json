@@ -1,0 +1,30 @@
+{
+  "cnpj": "19131243000197",
+  "razao_social": "OPEN KNOWLEDGE BRASIL",
+  "nome_fantasia": "OKBR",
+  "situacao_cadastral": 2,
+  "descricao_situacao_cadastral": "ATIVA",
+  "cnae_fiscal": 9430800,
+  "cnae_fiscal_descricao": "Atividades de associações de defesa de direitos sociais",
+  "cnaes_secundarios": [
+    {
+      "codigo": 6201501,
+      "descricao": "Desenvolvimento de programas de computador sob encomenda"
+    }
+  ],
+  "descricao_tipo_de_logradouro": "RUA",
+  "logradouro": "VITORINO CARMILO",
+  "numero": "498",
+  "complemento": "",
+  "bairro": "BARRA FUNDA",
+  "cep": "01153000",
+  "municipio": "SAO PAULO",
+  "uf": "SP",
+  "codigo_municipio_ibge": 3550308,
+  "natureza_juridica": "Associação Privada",
+  "porte": "DEMAIS",
+  "descricao_identificador_matriz_filial": "MATRIZ",
+  "ddd_telefone_1": "1133334444",
+  "ddd_telefone_2": "",
+  "email": null
+}

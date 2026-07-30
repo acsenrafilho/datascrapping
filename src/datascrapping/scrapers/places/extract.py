@@ -96,6 +96,14 @@ def _is_valid_cnpj_check_digits(digits: str) -> bool:
     return True
 
 
+def validate_cnpj(value: str) -> bool:
+    """Return True if value has 14 digits and valid CNPJ check digits."""
+    digits = clean_cnpj_digits(value)
+    if not digits:
+        return False
+    return _is_valid_cnpj_check_digits(digits)
+
+
 def extract_mailto_emails(html: str) -> list[str]:
     soup = BeautifulSoup(html, "html.parser")
     found: list[str] = []

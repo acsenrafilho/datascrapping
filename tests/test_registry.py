@@ -44,5 +44,6 @@ def test_load_scrapers_registers_expected_names():
         "bni",
         "places.search",
         "places.website",
+        "places.cnpj",
     }
     assert expected.issubset(names)

@@ -243,7 +243,10 @@ def _print_guide() -> None:
         "(name, phone, address, website).\n"
         "Stage 2 ([cyan]places.website[/cyan]): crawl websites from "
         "[cyan]places.csv[/cyan] → e-mail/heuristics; optional Gemini via "
-        "[cyan]GEMINI_API_KEY[/cyan] + [cyan]poetry install -E llm[/cyan]."
+        "[cyan]GEMINI_API_KEY[/cyan] + [cyan]poetry install -E llm[/cyan].\n"
+        "Stage 3 ([cyan]places.cnpj[/cyan]): read "
+        "[cyan]places_enriched.csv[/cyan] → BrasilAPI CNPJ → "
+        "[cyan]places_full.csv[/cyan] (razão social, situação, CNAE, endereço fiscal)."
     )
     places_flags = Table(title="Places-only flags", show_header=True)
     places_flags.add_column("Flag")
@@ -261,11 +264,15 @@ def _print_guide() -> None:
     )
     places_flags.add_row(
         "--from",
-        "places.csv path or folder (required for places.website)",
+        "places.csv (website) or places_enriched.csv (cnpj) — file or folder",
     )
     places_flags.add_row(
         "--skip-llm",
         "places.website: heuristics only (no Gemini)",
+    )
+    places_flags.add_row(
+        "--cnpj",
+        "places.cnpj: single CNPJ smoke (or filter rows when used with --from)",
     )
     console.print(places_flags)
     places_ex = Table(title="Example Places runs", show_header=True)
@@ -501,13 +508,22 @@ def run_scraper(
     from_path: Optional[str] = typer.Option(
         None,
         "--from",
-        help="places.csv path (or folder) for places.website.",
+        help=(
+            "Input CSV path or folder: places.csv (places.website) or "
+            "places_enriched.csv (places.cnpj)."
+        ),
         rich_help_panel="Places scrapers",
     ),
     skip_llm: bool = typer.Option(
         False,
         "--skip-llm",
         help="places.website: heuristics only (skip Gemini even if GEMINI_API_KEY set).",
+        rich_help_panel="Places scrapers",
+    ),
+    cnpj: Optional[str] = typer.Option(
+        None,
+        "--cnpj",
+        help="places.cnpj: single CNPJ for smoke/test (or filter with --from).",
         rich_help_panel="Places scrapers",
     ),
 ) -> None:
@@ -535,6 +551,7 @@ def run_scraper(
             "niche": niche,
             "max_quota": max_quota,
             "from_path": from_path,
+            "cnpj": cnpj,
         }.items()
         if value is not None
     }
