@@ -17,6 +17,8 @@ from datascrapping.cli_help import (
     BNI_CATEGORY_GROUPS,
     BNI_SPECIALTY_EXAMPLES,
     PLACES_EXAMPLES,
+    PLACES_FLAGS,
+    PLACES_PIPELINE,
     SHARED_DEFAULTS,
 )
 from datascrapping.core.base import ScrapeContext
@@ -26,10 +28,11 @@ from datascrapping.scrapers.loader import load_scrapers
 
 APP_EPILOG = (
     "Commands to explore options:\n\n"
-    "  datascrapping guide              Decision guide (blog / BNI / Places)\n"
+    "  datascrapping guide              Decision guide (blog / BNI / Places pipeline)\n"
     "  datascrapping list               Registered scrapers by family\n"
     "  datascrapping bni-specialties    Live BNI Search Category list (login)\n"
-    "  datascrapping run --help         Flags: Shared / Blog / BNI / Places"
+    "  datascrapping run --help         Flags: Shared / Blog / BNI / Places\n\n"
+    "Places: places.all (search→website→cnpj) or stages alone — see guide §6"
 )
 
 app = typer.Typer(
@@ -38,7 +41,8 @@ app = typer.Typer(
         "CLI toolkit for structured web scraping and data collection.\n\n"
         "Families: [bold]blog.*[/bold] (HTTP markdown), "
         "[bold]bni[/bold] (BNI Connect → CSV), "
-        "[bold]places.*[/bold] (Google Places prospection → CSV)."
+        "[bold]places.*[/bold] (Google Places prospection → CSV; "
+        "one-shot [cyan]places.all[/cyan] = search→website→cnpj)."
     ),
     epilog=APP_EPILOG,
     no_args_is_help=True,
@@ -88,9 +92,10 @@ def _print_guide() -> None:
     )
     family.add_row(
         "Places",
-        "places.search",
-        "Google Places Text Search + Details → CSV "
-        "(GOOGLE_PLACES_API_KEY; prospection, not SaaS Maps)",
+        "places.search → places.website → places.cnpj\n"
+        "(or places.all for all three)",
+        "3-stage prospection: Google Places → website crawl → "
+        "BrasilAPI CNPJ (GOOGLE_PLACES_API_KEY for stage 1)",
     )
     console.print(family)
 
@@ -236,46 +241,65 @@ def _print_guide() -> None:
         "  [green]datascrapping run bni --headed --reauth[/green]"
     )
 
-    console.print("\n[bold green]6. Places scrapers[/bold green]")
+    console.print("\n[bold green]6. Places scrapers[/bold green] (run in order)")
     console.print(
-        "Stage 1 ([cyan]places.search[/cyan]): "
-        "[cyan]GOOGLE_PLACES_API_KEY[/cyan] → call list "
-        "(name, phone, address, website).\n"
-        "Stage 2 ([cyan]places.website[/cyan]): crawl websites from "
-        "[cyan]places.csv[/cyan] → e-mail/heuristics; optional Gemini via "
-        "[cyan]GEMINI_API_KEY[/cyan] + [cyan]poetry install -E llm[/cyan].\n"
-        "Stage 3 ([cyan]places.cnpj[/cyan]): read "
-        "[cyan]places_enriched.csv[/cyan] → BrasilAPI CNPJ → "
-        "[cyan]places_full.csv[/cyan] (razão social, situação, CNAE, endereço fiscal)."
+        "Always use [cyan]datascrapping run <scraper>[/cyan] "
+        "(not [red]datascrapping places.search[/red]).\n"
+        "Recommended for a new city: "
+        "[cyan]places.all[/cyan] (runs stages 1→2→3).\n"
+        "Slug folder: [cyan]output/places/<city>_<uf>_<niche>/[/cyan] "
+        "(e.g. [cyan]campinas_sp_aasi[/cyan]). "
+        "With separate stages, pass [cyan]--from[/cyan] as that folder "
+        "or the CSV file inside it.\n"
+        "CEP / endereço fiscal vêm da BrasilAPI CNPJ (stage 3), não de ViaCEP."
     )
-    places_flags = Table(title="Places-only flags", show_header=True)
+    pipeline = Table(
+        title="Places pipeline (one city end-to-end)",
+        show_header=True,
+        header_style="bold",
+    )
+    pipeline.add_column("Stage", style="cyan", justify="center")
+    pipeline.add_column("Scraper")
+    pipeline.add_column("Input")
+    pipeline.add_column("Output")
+    pipeline.add_column("Env / notes")
+    for stage, scraper, inp, out, env_note in PLACES_PIPELINE:
+        pipeline.add_row(stage, scraper, inp, out, env_note)
+    console.print(pipeline)
+
+    places_flags = Table(
+        title="Places flags (which scraper uses each)",
+        show_header=True,
+    )
     places_flags.add_column("Flag")
-    places_flags.add_column("Purpose")
-    places_flags.add_row("--city", "City name (required for search), e.g. Campinas")
-    places_flags.add_row("--state", "UF 2 letters (required for search), e.g. SP")
-    places_flags.add_row("--niche", "terms.json key (default: aasi)")
-    places_flags.add_row(
-        "--skip-geo-check",
-        "Skip BrasilAPI IBGE city/UF validation",
-    )
-    places_flags.add_row(
-        "--max-quota",
-        "Stop when estimated Places units exceed this (default 20000)",
-    )
-    places_flags.add_row(
-        "--from",
-        "places.csv (website) or places_enriched.csv (cnpj) — file or folder",
-    )
-    places_flags.add_row(
-        "--skip-llm",
-        "places.website: heuristics only (no Gemini)",
-    )
-    places_flags.add_row(
-        "--cnpj",
-        "places.cnpj: single CNPJ smoke (or filter rows when used with --from)",
-    )
+    places_flags.add_column("Used by / purpose")
+    for flag, purpose in PLACES_FLAGS:
+        places_flags.add_row(flag, purpose)
     console.print(places_flags)
-    places_ex = Table(title="Example Places runs", show_header=True)
+
+    console.print(
+        "\n[bold]Full city recipe[/bold] — one command "
+        "([cyan]places.all[/cyan]):\n"
+        '  [green]datascrapping run places.all --city "Campinas" '
+        "--state SP --skip-llm[/green]\n"
+        "Or step by step:\n"
+        '  [green]datascrapping run places.search --city "Campinas" '
+        "--state SP[/green]\n"
+        "  [green]datascrapping run places.website "
+        "--from output/places/campinas_sp_aasi --skip-llm[/green]\n"
+        "  [green]datascrapping run places.cnpj "
+        "--from output/places/campinas_sp_aasi[/green]\n"
+        "[cyan]places.all[/cyan] uses the same flags as search "
+        "([cyan]--city/--state/--niche/--max-quota/--skip-geo-check[/cyan]) "
+        "plus [cyan]--skip-llm[/cyan] for stage 2; "
+        "[cyan]--from[/cyan] is computed from the city slug.\n"
+        "Resume: re-run the same stage or [cyan]places.all[/cyan]; "
+        "checkpoints skip already-saved [cyan]place_id[/cyan]s.\n"
+        "Optional Gemini on stage 2: omit [cyan]--skip-llm[/cyan] after "
+        "[cyan]poetry install -E llm[/cyan] and set [cyan]GEMINI_API_KEY[/cyan]."
+    )
+
+    places_ex = Table(title="More Places examples", show_header=True)
     places_ex.add_column("Command", style="green")
     places_ex.add_column("Notes")
     for cmd, note in PLACES_EXAMPLES:
@@ -283,8 +307,9 @@ def _print_guide() -> None:
     console.print(places_ex)
 
     console.print(
-        "\n[dim]Tip: [cyan]datascrapping run --help[/cyan] shows the same "
-        "flags in Shared / Blog / BNI / Places panels.[/dim]"
+        "\n[dim]Tip: [cyan]datascrapping run --help[/cyan] shows Shared / Blog / "
+        "BNI / Places panels. Prefer [cyan]datascrapping guide[/cyan] for the "
+        "Places pipeline order.[/dim]"
     )
 
 
@@ -302,7 +327,7 @@ def main(
 
 @app.command("guide")
 def show_guide() -> None:
-    """Show a decision guide: blog / BNI / Places, flags, and examples."""
+    """Show a decision guide: blog / BNI / Places pipeline (incl. places.all)."""
     _print_guide()
 
 
@@ -344,6 +369,8 @@ def list_scrapers() -> None:
     _table("Other scrapers", other)
     console.print(
         "\n[dim]How to choose flags:[/dim] [cyan]datascrapping guide[/cyan]\n"
+        "[dim]Places one-shot:[/dim] [cyan]datascrapping run places.all "
+        '--city "…" --state UF --skip-llm[/cyan]\n'
         "[dim]BNI specialties:[/dim] [cyan]datascrapping bni-specialties[/cyan]"
     )
 
@@ -351,15 +378,19 @@ def list_scrapers() -> None:
 @app.command(
     "run",
     epilog=(
-        "See also: [cyan]datascrapping guide[/cyan] · "
+        "See also: [cyan]datascrapping guide[/cyan] §6 Places · "
         "[cyan]datascrapping list[/cyan] · "
-        "[cyan]datascrapping bni-specialties[/cyan]"
+        "[cyan]datascrapping run places.all --help[/cyan] "
+        "(same flags; pipeline: search→website→cnpj)"
     ),
 )
 def run_scraper(
     scraper: str = typer.Argument(
         ...,
-        help="Scraper name from [cyan]list[/cyan] (blog.* / bni / places.*).",
+        help=(
+            "Scraper from [cyan]list[/cyan]: blog.* / bni / "
+            "places.search|website|cnpj|[bold]all[/bold]."
+        ),
         rich_help_panel="Target",
     ),
     # Shared
@@ -390,7 +421,10 @@ def run_scraper(
     dry_run: bool = typer.Option(
         False,
         "--dry-run",
-        help="Discover/extract without writing files.",
+        help=(
+            "Discover/extract without writing files. "
+            "places.all: validate flags + print planned stages only."
+        ),
         rich_help_panel="Shared",
     ),
     # Blog
@@ -474,63 +508,66 @@ def run_scraper(
         help="Ignore saved session and log in again.",
         rich_help_panel="BNI scraper",
     ),
-    # Places
+    # Places (pipeline: search → website → cnpj; see datascrapping guide)
     city: Optional[str] = typer.Option(
         None,
         "--city",
-        help="City name for places.search (required), e.g. Campinas.",
+        help="① places.search / places.all (required). City name, e.g. Campinas.",
         rich_help_panel="Places scrapers",
     ),
     state: Optional[str] = typer.Option(
         None,
         "--state",
-        help="UF (2 letters) for places.search (required), e.g. SP.",
+        help="① places.search / places.all (required). UF 2 letters, e.g. SP.",
         rich_help_panel="Places scrapers",
     ),
     niche: Optional[str] = typer.Option(
         None,
         "--niche",
-        help="Niche key from terms.json (default: aasi).",
+        help="① places.search / places.all. terms.json key (default: aasi).",
         rich_help_panel="Places scrapers",
     ),
     skip_geo_check: bool = typer.Option(
         False,
         "--skip-geo-check",
-        help="Skip BrasilAPI IBGE validation of city/UF.",
+        help="① places.search / places.all. Skip BrasilAPI IBGE city/UF check.",
         rich_help_panel="Places scrapers",
     ),
     max_quota: Optional[int] = typer.Option(
         None,
         "--max-quota",
-        help="Max estimated Places API quota units (default: 20000).",
+        help="① places.search / places.all. Max Places quota units (default: 20000).",
         rich_help_panel="Places scrapers",
     ),
     from_path: Optional[str] = typer.Option(
         None,
         "--from",
         help=(
-            "Input CSV path or folder: places.csv (places.website) or "
-            "places_enriched.csv (places.cnpj)."
+            "② website: places.csv or folder; "
+            "③ cnpj: places_enriched.csv or folder. "
+            "(Not needed for places.all.)"
         ),
         rich_help_panel="Places scrapers",
     ),
     skip_llm: bool = typer.Option(
         False,
         "--skip-llm",
-        help="places.website: heuristics only (skip Gemini even if GEMINI_API_KEY set).",
+        help="② places.website / places.all. Heuristics only (no Gemini).",
         rich_help_panel="Places scrapers",
     ),
     cnpj: Optional[str] = typer.Option(
         None,
         "--cnpj",
-        help="places.cnpj: single CNPJ for smoke/test (or filter with --from).",
+        help="③ places.cnpj only. Smoke one CNPJ (or filter with --from).",
         rich_help_panel="Places scrapers",
     ),
 ) -> None:
     """Run a registered scraper.
 
-    [bold]Blog[/bold], [bold]BNI[/bold], and [bold]Places[/bold] use different
-    flags — see panels below, or run [cyan]datascrapping guide[/cyan].
+    [bold]Places[/bold] pipeline: [cyan]places.search[/cyan] →
+    [cyan]places.website[/cyan] → [cyan]places.cnpj[/cyan], or one-shot
+    [cyan]places.all[/cyan]. See [cyan]datascrapping guide[/cyan] §6.
+    Flags differ by family — panels below (①/②/③ mark Places stage).
     """
     env_min, env_max = default_delays()
     delay_explicit = delay_min is not None or delay_max is not None

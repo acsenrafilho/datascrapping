@@ -12,7 +12,7 @@ from datascrapping.scrapers.places.crawl import extract_text_from_html
 logger = logging.getLogger(__name__)
 
 SCHEMA_PATH = Path(__file__).with_name("schema_website.json")
-DEFAULT_MODEL = "gemini-2.5-flash"
+DEFAULT_MODEL = "gemini-2.5-flash-lite"
 PER_PAGE_TEXT_LIMIT = 20_000
 TOTAL_TEXT_LIMIT = 300_000
 

@@ -99,9 +99,13 @@ class PlacesSearchFilters:
 
     def validate(self) -> None:
         if not self.city:
-            raise ValueError("Missing required --city for places.search")
+            raise ValueError(
+                "Missing required --city for places.search / places.all"
+            )
         if not self.state:
-            raise ValueError("Missing required --state (UF) for places.search")
+            raise ValueError(
+                "Missing required --state (UF) for places.search / places.all"
+            )
         if len(self.state) != 2 or not self.state.isalpha():
             raise ValueError(
                 f"Invalid --state {self.state!r}; expected a 2-letter UF (e.g. SP)"

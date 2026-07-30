@@ -105,12 +105,70 @@ Use only with your own account and within BNI terms of use.
 
 ## Usage — Places (prospection)
 
-Google Places API (New) Text Search + Place Details → commercial prospect CSV (name / phone / address). **Not** the Lead Control clinic Maps preview — use a separate GCP key in `GOOGLE_PLACES_API_KEY`.
+Three stage scrapers **in order**, or one-shot **`places.all`**. Folder slug:
+`output/places/<city>_<uf>_<niche>/` (e.g. `campinas_sp_aasi`).
 
-Official Places API only for stage 1 (respect Google ToS). No HTML scrape of Maps. No Playwright for Places.
+| Stage | Scraper | Input | Output | Env |
+|------|---------|-------|--------|-----|
+| ① | `places.search` | `--city` / `--state` / `--niche` | `places.csv` | `GOOGLE_PLACES_API_KEY` |
+| ② | `places.website` | `--from` → `places.csv` or folder | `places_enriched.csv` | optional `GEMINI_API_KEY` + `poetry install -E llm` |
+| ③ | `places.cnpj` | `--from` → `places_enriched.csv` or folder | `places_full.csv` | none (BrasilAPI) |
+| ★ | `places.all` | same as ① (+ `--skip-llm`) | runs ①→②→③ → `places_full.csv` | `--from` computed from slug |
+
+Official Places API only for stage 1 (respect Google ToS). No HTML scrape of Maps. No Playwright for Places. CEP / endereço fiscal come from BrasilAPI CNPJ in stage 3 (not ViaCEP).
+
+CLI docs for the same pipeline:
+
+```bash
+poetry run datascrapping guide          # §6 Places: table, flags, full recipe
+poetry run datascrapping list           # includes places.all
+poetry run datascrapping run --help     # Places flags marked ①/②/③ + places.all
+```
+
+### One-shot — `places.all` (recommended for a new city)
+
+Runs search → website → cnpj. Same flags as stage 1, plus `--skip-llm` for heuristics-only website crawl. Does **not** take `--from` (folder is derived from city/UF/niche).
 
 ```bash
 # .env: GOOGLE_PLACES_API_KEY=...
+poetry run datascrapping run places.all \
+  --city "Campinas" --state SP --niche aasi --skip-llm
+
+# Validate plan without HTTP (prints the three stages + output folder)
+poetry run datascrapping run places.all \
+  --city "Campinas" --state SP --skip-geo-check --dry-run
+
+# With Gemini on stage 2 (optional)
+# poetry install -E llm && GEMINI_API_KEY=...
+poetry run datascrapping run places.all \
+  --city "Campinas" --state SP
+```
+
+If stage 1 already ran, re-running `places.all` resumes via checkpoints (skips known `place_id`s) and continues into website + cnpj. To run only the remaining stages without calling Places again:
+
+```bash
+poetry run datascrapping run places.website \
+  --from output/places/campinas_sp_aasi --skip-llm
+poetry run datascrapping run places.cnpj \
+  --from output/places/campinas_sp_aasi
+```
+
+### Stage by stage (manual)
+
+```bash
+poetry run datascrapping run places.search \
+  --city "Campinas" --state SP --niche aasi
+
+poetry run datascrapping run places.website \
+  --from output/places/campinas_sp_aasi --skip-llm
+
+poetry run datascrapping run places.cnpj \
+  --from output/places/campinas_sp_aasi
+```
+
+### Stage 1 — `places.search`
+
+```bash
 poetry run datascrapping run places.search \
   --city "Campinas" --state SP --niche aasi
 
@@ -121,7 +179,7 @@ poetry run datascrapping run places.search \
   --city "Campinas" --state SP --skip-geo-check --dry-run
 ```
 
-Outputs (stage 1):
+Outputs:
 
 - CSV: `output/places/<city>_<uf>_<niche>/places.csv`
 - Checkpoint: `places.seen.json` (resume skips `place_id`s already saved)
@@ -135,7 +193,7 @@ Reads `places.csv`, crawls each non-empty `website` (robots.txt, sitemap/nav/com
 ```bash
 # Heuristics only (no Gemini)
 poetry run datascrapping run places.website \
-  --from output/places/campinas_sp_aasi/places.csv --skip-llm
+  --from output/places/campinas_sp_aasi --skip-llm
 
 # Optional LLM fill-gaps
 # poetry install -E llm
@@ -144,7 +202,7 @@ poetry run datascrapping run places.website \
   --from output/places/campinas_sp_aasi/places.csv
 ```
 
-Outputs (stage 2):
+Outputs:
 
 - CSV: `places_enriched.csv` (same folder as input)
 - Checkpoint: `places.website.seen.json` (resume by `place_id`)
@@ -155,15 +213,15 @@ Respect `robots.txt` and site ToS. Gemini is optional and fail-soft if the `llm`
 
 ### Stage 3 — `places.cnpj` (federal registry)
 
-Reads `places_enriched.csv`, looks up each non-empty `cnpj_raw` on BrasilAPI (`GET /api/cnpj/v1/{cnpj}`), and writes commercial federal fields. Fail-closed on invalid CNPJ (row still emitted with `cnpj_status=skipped_invalid`). No API key required.
+Reads `places_enriched.csv`, looks up each non-empty `cnpj_raw` on BrasilAPI (`GET /api/cnpj/v1/{cnpj}`), and writes commercial federal fields (incl. `fiscal_cep`). Fail-closed on invalid CNPJ (row still emitted with `cnpj_status=skipped_invalid`). No API key required.
 
 ```bash
 poetry run datascrapping run places.cnpj \
-  --from output/places/campinas_sp_aasi/places_enriched.csv
-
-# Folder form
-poetry run datascrapping run places.cnpj \
   --from output/places/campinas_sp_aasi
+
+# Explicit file
+poetry run datascrapping run places.cnpj \
+  --from output/places/campinas_sp_aasi/places_enriched.csv
 
 # Smoke: single CNPJ (no CSV)
 poetry run datascrapping run places.cnpj --cnpj 19131243000197
@@ -173,14 +231,14 @@ poetry run datascrapping run places.cnpj \
   --from output/places/campinas_sp_aasi --dry-run
 ```
 
-Outputs (stage 3):
+Outputs:
 
 - CSV: `places_full.csv` (same folder as input; or `output/places/cnpj_manual/` for `--cnpj` alone)
 - Checkpoint: `places.cnpj.seen.json` (resume by `place_id`)
 
-Extra columns include `razao_social`, `nome_fantasia`, `situacao`, `cnae`, `cnae_descricao`, `fiscal_*` (endereço fiscal), `natureza_juridica`, `porte`, `federal_phone_*`, `federal_email`, `cnpj_status`, `cnpj_status_reason`, `cnpj_scraped_at`. Does **not** overwrite website `email`.
+Extra columns include `razao_social`, `nome_fantasia`, `situacao`, `cnae`, `cnae_descricao`, `fiscal_*` (endereço fiscal + CEP), `natureza_juridica`, `porte`, `federal_phone_*`, `federal_email`, `cnpj_status`, `cnpj_status_reason`, `cnpj_scraped_at`. Does **not** overwrite website `email`.
 
-**Smoke (manual):** pick a small BR city, run niche `aasi`, confirm most rows have name + phone + address; then run `places.website --skip-llm` on that CSV and confirm e-mail when the site exposes `mailto:` / contact; then run `places.cnpj` and confirm `razao_social` / `situacao` when `cnpj_raw` is valid.
+**Smoke (manual):** `places.all --city … --state … --skip-llm` on a small BR city, or run stages ①→②→③; confirm name/phone/address, then e-mail when the site exposes contact, then `razao_social` / `situacao` when `cnpj_raw` is valid.
 
 ## Registered scrapers
 
@@ -197,13 +255,14 @@ Extra columns include `razao_social`, `nome_fantasia`, `situacao`, `cnae`, `cnae
 | `places.search` | Google Places → CSV (prospection) |
 | `places.website` | Website crawl → enrich places.csv (e-mail) |
 | `places.cnpj` | BrasilAPI CNPJ → enrich places_enriched.csv (federal) |
+| `places.all` | One city: search → website → cnpj |
 
 ## Architecture
 
 - `src/datascrapping/core/` — contract, registry, HTTP, browser helpers, sinks, checkpoint
 - `src/datascrapping/scrapers/blog/` — blog crawlers
 - `src/datascrapping/scrapers/bni/` — auth, search, profile, CSV orchestration
-- `src/datascrapping/scrapers/places/` — Places search + website + CNPJ enrichment → CSV
+- `src/datascrapping/scrapers/places/` — Places search + website + CNPJ + `places.all` pipeline → CSV
 - `src/datascrapping/cli.py` — Typer CLI
 
 ## Development
