@@ -67,4 +67,12 @@ PLACES_EXAMPLES = (
         'run places.search --city "Campinas" --state SP --skip-geo-check --dry-run',
         "Validate flags without calling Places or writing CSV",
     ),
+    (
+        "run places.website --from output/places/campinas_sp_aasi/places.csv --skip-llm",
+        "Enrich e-mail/contact via heuristics → places_enriched.csv",
+    ),
+    (
+        "run places.website --from output/places/campinas_sp_aasi --dry-run",
+        "Count rows with website; no HTTP",
+    ),
 )

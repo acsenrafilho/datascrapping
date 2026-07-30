@@ -107,7 +107,7 @@ Use only with your own account and within BNI terms of use.
 
 Google Places API (New) Text Search + Place Details → commercial prospect CSV (name / phone / address). **Not** the Lead Control clinic Maps preview — use a separate GCP key in `GOOGLE_PLACES_API_KEY`.
 
-Official Places API only (respect Google ToS). No HTML scrape of Maps. No Playwright / Gemini for stage 1.
+Official Places API only for stage 1 (respect Google ToS). No HTML scrape of Maps. No Playwright for Places.
 
 ```bash
 # .env: GOOGLE_PLACES_API_KEY=...
@@ -121,14 +121,39 @@ poetry run datascrapping run places.search \
   --city "Campinas" --state SP --skip-geo-check --dry-run
 ```
 
-Outputs:
+Outputs (stage 1):
 
 - CSV: `output/places/<city>_<uf>_<niche>/places.csv`
 - Checkpoint: `places.seen.json` (resume skips `place_id`s already saved)
 
-P0 columns: `name`, `phone` / `phone_intl`, `address` (+ `website`, `maps_url`, `place_id`). Column `email` is present but empty until a future `places.website` stage.
+P0 columns: `name`, `phone` / `phone_intl`, `address` (+ `website`, `maps_url`, `place_id`). Column `email` is empty until stage 2.
 
-**Smoke (manual):** pick a small BR city, run niche `aasi`, confirm most rows have name + phone + address.
+### Stage 2 — `places.website` (e-mail / enrichment)
+
+Reads `places.csv`, crawls each non-empty `website` (robots.txt, sitemap/nav/common paths, polite delays), extracts contacts with **cheap heuristics first** (`mailto:`, e-mail/phone/CNPJ/social), then optionally fills gaps with Gemini.
+
+```bash
+# Heuristics only (no Gemini)
+poetry run datascrapping run places.website \
+  --from output/places/campinas_sp_aasi/places.csv --skip-llm
+
+# Optional LLM fill-gaps
+# poetry install -E llm
+# .env: GEMINI_API_KEY=...
+poetry run datascrapping run places.website \
+  --from output/places/campinas_sp_aasi/places.csv
+```
+
+Outputs (stage 2):
+
+- CSV: `places_enriched.csv` (same folder as input)
+- Checkpoint: `places.website.seen.json` (resume by `place_id`)
+
+Extra columns include `email`, `emails_extra`, `phones_extra`, `cnpj_raw`, `social_*`, `brand_name`, `website_status`, `website_scraped_at`, `pages_fetched`, `pages_failed`.
+
+Respect `robots.txt` and site ToS. Gemini is optional and fail-soft if the `llm` extra or key is missing.
+
+**Smoke (manual):** pick a small BR city, run niche `aasi`, confirm most rows have name + phone + address; then run `places.website --skip-llm` on that CSV and confirm e-mail when the site exposes `mailto:` / contact.
 
 ## Registered scrapers
 
@@ -143,13 +168,14 @@ P0 columns: `name`, `phone` / `phone_intl`, `address` (+ `website`, `maps_url`, 
 | `blog.all` | Competitor set in sequence |
 | `bni` | BNI Connect → CSV |
 | `places.search` | Google Places → CSV (prospection) |
+| `places.website` | Website crawl → enrich places.csv (e-mail) |
 
 ## Architecture
 
 - `src/datascrapping/core/` — contract, registry, HTTP, browser helpers, sinks, checkpoint
 - `src/datascrapping/scrapers/blog/` — blog crawlers
 - `src/datascrapping/scrapers/bni/` — auth, search, profile, CSV orchestration
-- `src/datascrapping/scrapers/places/` — Places Text Search + Details → CSV
+- `src/datascrapping/scrapers/places/` — Places search + website enrichment → CSV
 - `src/datascrapping/cli.py` — Typer CLI
 
 ## Development

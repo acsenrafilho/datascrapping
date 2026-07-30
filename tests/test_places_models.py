@@ -1,10 +1,13 @@
 from datascrapping.scrapers.places.models import (
     CSV_FIELDS,
+    ENRICHED_CSV_FIELDS,
     PlaceRow,
     filters_from_extras,
     known_niches,
     load_search_terms,
+    resolve_places_csv,
     run_slug,
+    website_filters_from_extras,
 )
 
 
@@ -91,3 +94,28 @@ def test_load_search_terms_empty_niche_fails():
 
 def test_known_niches():
     assert "aasi" in known_niches()
+
+
+def test_enriched_csv_extends_base():
+    assert CSV_FIELDS == ENRICHED_CSV_FIELDS[: len(CSV_FIELDS)]
+    assert "emails_extra" in ENRICHED_CSV_FIELDS
+    assert "cnpj_raw" in ENRICHED_CSV_FIELDS
+    assert "website_status" in ENRICHED_CSV_FIELDS
+
+
+def test_website_filters_and_resolve(tmp_path):
+    try:
+        website_filters_from_extras({})
+        assert False, "expected ValueError"
+    except ValueError as exc:
+        assert "--from" in str(exc)
+
+    filters = website_filters_from_extras(
+        {"from_path": "/tmp/x", "skip_llm": True}
+    )
+    assert filters.skip_llm is True
+
+    csv_path = tmp_path / "places.csv"
+    csv_path.write_text("place_id\n", encoding="utf-8")
+    assert resolve_places_csv(csv_path) == csv_path.resolve()
+    assert resolve_places_csv(tmp_path) == csv_path.resolve()

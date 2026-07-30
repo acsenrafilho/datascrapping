@@ -32,6 +32,25 @@ CSV_FIELDS = (
     "quota_units_est",
 )
 
+ENRICHED_EXTRA_FIELDS = (
+    "emails_extra",
+    "phones_extra",
+    "cnpj_raw",
+    "social_facebook",
+    "social_instagram",
+    "social_linkedin",
+    "social_youtube",
+    "social_tiktok",
+    "social_twitter",
+    "brand_name",
+    "website_status",
+    "website_scraped_at",
+    "pages_fetched",
+    "pages_failed",
+)
+
+ENRICHED_CSV_FIELDS = CSV_FIELDS + ENRICHED_EXTRA_FIELDS
+
 DEFAULT_NICHE = "aasi"
 DEFAULT_MAX_QUOTA = 20000
 TERMS_PATH = Path(__file__).with_name("terms.json")
@@ -138,3 +157,64 @@ def known_niches(terms_path: Path | None = None) -> list[str]:
     path = terms_path or TERMS_PATH
     data = json.loads(path.read_text(encoding="utf-8"))
     return sorted(data.keys())
+
+
+@dataclass
+class PlacesWebsiteFilters:
+    from_path: str
+    skip_llm: bool = False
+
+    def validate(self) -> None:
+        if not self.from_path:
+            raise ValueError(
+                "Missing required --from for places.website "
+                "(path to places.csv or its parent folder)"
+            )
+
+
+def website_filters_from_extras(extras: dict[str, Any]) -> PlacesWebsiteFilters:
+    from_path = str(extras.get("from_path") or "").strip()
+    skip_llm = bool(extras.get("skip_llm", False))
+    filters = PlacesWebsiteFilters(from_path=from_path, skip_llm=skip_llm)
+    filters.validate()
+    return filters
+
+
+def resolve_places_csv(from_path: str | Path) -> Path:
+    """Resolve --from to an existing places.csv file."""
+    path = Path(from_path).expanduser().resolve()
+    if path.is_file():
+        if path.name != "places.csv":
+            raise ValueError(
+                f"Expected a places.csv file, got {path.name!r} ({path})"
+            )
+        return path
+    if path.is_dir():
+        candidate = path / "places.csv"
+        if candidate.is_file():
+            return candidate
+        raise ValueError(f"No places.csv found in folder {path}")
+    raise ValueError(f"Input path does not exist: {path}")
+
+
+def empty_enriched_extras() -> dict[str, str]:
+    return {key: "" for key in ENRICHED_EXTRA_FIELDS}
+
+
+def base_row_from_places(row: dict[str, str]) -> dict[str, str]:
+    """Copy stage-1 columns; keep email empty until enrichment fills it."""
+    return {key: str(row.get(key, "") or "") for key in CSV_FIELDS}
+
+
+def join_extra(values: list[str], sep: str = "|") -> str:
+    cleaned = [v.strip() for v in values if v and str(v).strip()]
+    # preserve order, drop dupes case-insensitively for emails
+    seen: set[str] = set()
+    out: list[str] = []
+    for item in cleaned:
+        key = item.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(item)
+    return sep.join(out)

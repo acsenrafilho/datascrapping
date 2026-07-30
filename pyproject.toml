@@ -21,6 +21,9 @@ dependencies = [
 browser = [
     "playwright (>=1.40.0,<2.0.0)",
 ]
+llm = [
+    "google-generativeai (>=0.8.0,<1.0.0)",
+]
 
 [project.scripts]
 datascrapping = "datascrapping.cli:app"

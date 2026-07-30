@@ -238,17 +238,18 @@ def _print_guide() -> None:
 
     console.print("\n[bold green]6. Places scrapers[/bold green]")
     console.print(
-        "Needs [cyan]GOOGLE_PLACES_API_KEY[/cyan] in [cyan].env[/cyan] "
-        "(prospection key — separate from Lead Control product Maps).\n"
-        "Stage 1 ([cyan]places.search[/cyan]) yields a call list: "
-        "name, phone, address (+ website/maps_url). "
-        "Email column is reserved empty until [cyan]places.website[/cyan]."
+        "Stage 1 ([cyan]places.search[/cyan]): "
+        "[cyan]GOOGLE_PLACES_API_KEY[/cyan] → call list "
+        "(name, phone, address, website).\n"
+        "Stage 2 ([cyan]places.website[/cyan]): crawl websites from "
+        "[cyan]places.csv[/cyan] → e-mail/heuristics; optional Gemini via "
+        "[cyan]GEMINI_API_KEY[/cyan] + [cyan]poetry install -E llm[/cyan]."
     )
     places_flags = Table(title="Places-only flags", show_header=True)
     places_flags.add_column("Flag")
     places_flags.add_column("Purpose")
-    places_flags.add_row("--city", "City name (required), e.g. Campinas")
-    places_flags.add_row("--state", "UF 2 letters (required), e.g. SP")
+    places_flags.add_row("--city", "City name (required for search), e.g. Campinas")
+    places_flags.add_row("--state", "UF 2 letters (required for search), e.g. SP")
     places_flags.add_row("--niche", "terms.json key (default: aasi)")
     places_flags.add_row(
         "--skip-geo-check",
@@ -257,6 +258,14 @@ def _print_guide() -> None:
     places_flags.add_row(
         "--max-quota",
         "Stop when estimated Places units exceed this (default 20000)",
+    )
+    places_flags.add_row(
+        "--from",
+        "places.csv path or folder (required for places.website)",
+    )
+    places_flags.add_row(
+        "--skip-llm",
+        "places.website: heuristics only (no Gemini)",
     )
     console.print(places_flags)
     places_ex = Table(title="Example Places runs", show_header=True)
@@ -489,6 +498,18 @@ def run_scraper(
         help="Max estimated Places API quota units (default: 20000).",
         rich_help_panel="Places scrapers",
     ),
+    from_path: Optional[str] = typer.Option(
+        None,
+        "--from",
+        help="places.csv path (or folder) for places.website.",
+        rich_help_panel="Places scrapers",
+    ),
+    skip_llm: bool = typer.Option(
+        False,
+        "--skip-llm",
+        help="places.website: heuristics only (skip Gemini even if GEMINI_API_KEY set).",
+        rich_help_panel="Places scrapers",
+    ),
 ) -> None:
     """Run a registered scraper.
 
@@ -513,6 +534,7 @@ def run_scraper(
             "state": state,
             "niche": niche,
             "max_quota": max_quota,
+            "from_path": from_path,
         }.items()
         if value is not None
     }
@@ -524,6 +546,8 @@ def run_scraper(
         extras["reauth"] = True
     if skip_geo_check:
         extras["skip_geo_check"] = True
+    if skip_llm:
+        extras["skip_llm"] = True
     if delay_explicit:
         extras["delay_explicit"] = True
 
