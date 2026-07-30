@@ -34,6 +34,20 @@ def test_filters_from_extras_without_specialty():
     assert filters.region == "SP"
 
 
+def test_filters_from_extras_locale():
+    filters = filters_from_extras({"locale": "pt-BR", "category": "Health & Wellness"})
+    assert filters.locale == "pt_BR"
+    assert filters.category == "Health & Wellness"
+
+
+def test_filters_invalid_locale_raises():
+    try:
+        filters_from_extras({"locale": "fr_FR"})
+        assert False, "expected ValueError"
+    except ValueError as exc:
+        assert "Unsupported BNI locale" in str(exc)
+
+
 def test_member_to_row_has_csv_fields():
     row = BniMember(name="Ada", profile_url="https://x").to_row()
     assert list(row.keys()) == list(CSV_FIELDS)

@@ -18,6 +18,44 @@ BNI_CATEGORIES_API = (
 UI_LOCALE = "en"
 LOOKUP_LOCALES = ("en", "pt_BR", "es")
 
+_LOCALE_ALIASES = {
+    "en": "en",
+    "en_us": "en",
+    "en-us": "en",
+    "en_US": "en",
+    "en-US": "en",
+    "pt": "pt_BR",
+    "pt_br": "pt_BR",
+    "pt-br": "pt_BR",
+    "pt_BR": "pt_BR",
+    "pt-BR": "pt_BR",
+    "es": "es",
+    "es_es": "es",
+    "es-es": "es",
+    "es_ES": "es",
+    "es-ES": "es",
+    "es_mx": "es",
+    "es-mx": "es",
+    "es_MX": "es",
+    "es-MX": "es",
+}
+
+
+def normalize_locale(value: str) -> str:
+    """Normalize user locale input to BNI codes: en, pt_BR, or es."""
+    raw = (value or "").strip()
+    if not raw:
+        raise ValueError("locale is empty")
+    key = raw.replace(" ", "")
+    resolved = _LOCALE_ALIASES.get(key) or _LOCALE_ALIASES.get(key.casefold())
+    if resolved is None:
+        raise ValueError(
+            f"Unsupported BNI locale {value!r}. "
+            "Use one of: en, pt_BR, es "
+            "(aliases: pt, pt-BR, en-US, es-ES, …)."
+        )
+    return resolved
+
 
 @dataclass(frozen=True)
 class BniCategory:
@@ -30,13 +68,18 @@ class BniCategory:
 
     @property
     def label(self) -> str:
-        return self.secondary
+        return self.secondary or self.primary
 
     @property
     def display(self) -> str:
-        if self.primary:
+        if self.primary and self.secondary:
             return f"{self.primary} > {self.secondary}"
-        return self.secondary
+        return self.primary or self.secondary
+
+    @property
+    def is_primary_only(self) -> bool:
+        """True when resolved as a category group without a specialty."""
+        return bool(self.primary_id) and not self.secondary_id
 
 
 def fetch_categories(context, *, locale: str = UI_LOCALE) -> list[BniCategory]:
@@ -73,9 +116,20 @@ def fetch_categories(context, *, locale: str = UI_LOCALE) -> list[BniCategory]:
     return categories
 
 
-def fetch_category_catalog(context) -> dict[str, list[BniCategory]]:
+def fetch_category_catalog(
+    context,
+    *,
+    preferred_locale: str | None = None,
+) -> dict[str, list[BniCategory]]:
     catalog: dict[str, list[BniCategory]] = {}
-    for locale in LOOKUP_LOCALES:
+    locales: list[str] = list(LOOKUP_LOCALES)
+    if preferred_locale:
+        preferred = normalize_locale(preferred_locale)
+        # Always keep English available for UI specialty selection.
+        locales = [preferred] + [loc for loc in LOOKUP_LOCALES if loc != preferred]
+        if UI_LOCALE not in locales:
+            locales.append(UI_LOCALE)
+    for locale in locales:
         try:
             catalog[locale] = fetch_categories(context, locale=locale)
         except Exception:
@@ -198,3 +252,148 @@ def resolve_specialty(
         resolved.secondary_id,
     )
     return resolved
+
+
+def resolve_primary_category(
+    category: str,
+    catalog: dict[str, list[BniCategory]],
+) -> BniCategory:
+    """Map a primary group label (any locale) to an English category filter.
+
+    Returns a BniCategory with secondary_id=0 so the search API can filter by
+    category_id alone (all specialties under that group).
+    """
+    query = category.strip()
+    if not query:
+        raise ValueError("category is empty")
+
+    q = _norm(query)
+    candidates: list[tuple[int, BniCategory]] = []
+    for _locale, categories in catalog.items():
+        for item in categories:
+            primary_n = _norm(item.primary)
+            if not primary_n:
+                continue
+            if q == primary_n:
+                candidates.append((100, item))
+            elif primary_n.startswith(q) or q in primary_n:
+                candidates.append((70, item))
+
+    if not candidates:
+        # Unique primary labels from English catalog for suggestions
+        primaries = sorted(
+            {c.primary for c in catalog.get(UI_LOCALE, []) if c.primary}
+        )
+        close = get_close_matches(query, primaries, n=8, cutoff=0.5)
+        tip = ", ".join(f'"{name}"' for name in close) or "(none)"
+        raise ValueError(
+            f"BNI category {category!r} is not a known primary group. "
+            f"Suggestions: {tip}. "
+            "List groups with: poetry run datascrapping bni-specialties "
+            "--groups-only"
+        )
+
+    candidates.sort(key=lambda item: (-item[0], item[1].locale != UI_LOCALE))
+    best = candidates[0][1]
+
+    # Prefer English primary label for logging / run slug consistency.
+    en_match = next(
+        (
+            c
+            for c in catalog.get(UI_LOCALE, [])
+            if c.primary_id == best.primary_id and c.primary
+        ),
+        None,
+    )
+    primary_name = en_match.primary if en_match else best.primary
+    resolved = BniCategory(
+        primary_id=best.primary_id,
+        secondary_id=0,
+        primary=primary_name,
+        secondary="",
+        description=primary_name,
+        locale=UI_LOCALE,
+    )
+    logger.info(
+        "Resolved category %r → %s (primaryId=%s, all specialties)",
+        category,
+        resolved.primary,
+        resolved.primary_id,
+    )
+    return resolved
+
+
+def resolve_search_filters(
+    catalog: dict[str, list[BniCategory]],
+    *,
+    specialty: str | None = None,
+    category: str | None = None,
+) -> BniCategory | None:
+    """Resolve optional --specialty / --category into an API filter."""
+    if specialty:
+        return resolve_specialty(
+            specialty,
+            catalog,
+            category_group=category,
+        )
+    if category:
+        return resolve_primary_category(category, catalog)
+    return None
+
+
+def specialties_under_primary(
+    catalog: dict[str, list[BniCategory]],
+    primary_id: int,
+) -> list[BniCategory]:
+    """English specialty rows for a primary group (unique by secondary_id)."""
+    seen: set[int] = set()
+    out: list[BniCategory] = []
+    for category in catalog.get(UI_LOCALE, []):
+        if category.primary_id != primary_id or not category.secondary_id:
+            continue
+        if category.secondary_id in seen:
+            continue
+        seen.add(category.secondary_id)
+        out.append(category)
+    out.sort(key=lambda item: item.secondary.casefold())
+    return out
+
+
+def expand_search_targets(
+    resolved: BniCategory | None,
+    catalog: dict[str, list[BniCategory]] | None = None,
+) -> list[BniCategory | None]:
+    """BNI advanced search only honors speciality_id; category_id alone is ignored.
+
+    Expand a primary-only resolution into one target per specialty under that
+    group. Single specialty / unfiltered searches return a one-item list.
+    """
+    if resolved is None:
+        return [None]
+    if not resolved.is_primary_only:
+        return [resolved]
+    if catalog is None:
+        raise RuntimeError(
+            "Category catalog required to expand --category into specialties"
+        )
+    specs = specialties_under_primary(catalog, resolved.primary_id)
+    if not specs:
+        raise RuntimeError(
+            f"No specialties found under category {resolved.primary!r} "
+            f"(primaryId={resolved.primary_id})"
+        )
+    logger.info(
+        "BNI API ignores category_id without speciality_id; "
+        "expanding %r into %s specialty searches",
+        resolved.primary,
+        len(specs),
+    )
+    for index, spec in enumerate(specs, start=1):
+        logger.info(
+            "  [%s/%s] %s (speciality_id=%s)",
+            index,
+            len(specs),
+            spec.display,
+            spec.secondary_id,
+        )
+    return list(specs)

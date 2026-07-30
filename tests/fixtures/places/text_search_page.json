@@ -1,0 +1,19 @@
+{
+  "places": [
+    {
+      "id": "ChIJtest123",
+      "displayName": {"text": "Auditiva Campinas", "languageCode": "pt"},
+      "formattedAddress": "Rua Exemplo, 100, Campinas - SP",
+      "location": {"latitude": -22.9056, "longitude": -47.0608},
+      "rating": 4.5,
+      "userRatingCount": 42,
+      "businessStatus": "OPERATIONAL",
+      "types": ["store", "point_of_interest"],
+      "nationalPhoneNumber": "(19) 3000-0000",
+      "internationalPhoneNumber": "+55 19 3000-0000",
+      "websiteUri": "https://example.com",
+      "googleMapsUri": "https://maps.google.com/?cid=1"
+    }
+  ],
+  "nextPageToken": null
+}

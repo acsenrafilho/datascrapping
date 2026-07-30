@@ -53,3 +53,18 @@ SHARED_DEFAULTS = (
     ("--delay-min/--delay-max", "SCRAPE_DELAY_* from .env, else 1.0–3.0s"),
     ("BNI delays", "If you leave env defaults, BNI bumps to ~3.0–8.0s"),
 )
+
+PLACES_EXAMPLES = (
+    (
+        'run places.search --city "Campinas" --state SP',
+        "Niche aasi (default) → output/places/campinas_sp_aasi/places.csv",
+    ),
+    (
+        "run places.search --city Americana --state SP --niche aasi --max-quota 5000",
+        "Cap estimated Places quota units for the run",
+    ),
+    (
+        'run places.search --city "Campinas" --state SP --skip-geo-check --dry-run',
+        "Validate flags without calling Places or writing CSV",
+    ),
+)

@@ -31,10 +31,13 @@ class BniFilters:
     region: str | None = None
     country: str = "Brazil"
     category: str | None = None
+    locale: str | None = None
 
     def validate(self) -> None:
-        # All filters are optional; keep method for future constraints.
-        return
+        if self.locale is not None:
+            from datascrapping.scrapers.bni.categories import normalize_locale
+
+            self.locale = normalize_locale(self.locale)
 
 
 @dataclass
@@ -68,11 +71,13 @@ def filters_from_extras(extras: dict) -> BniFilters:
     category_raw = (
         str(extras["category"]).strip() if extras.get("category") else ""
     )
+    locale_raw = str(extras.get("locale") or "").strip()
     filters = BniFilters(
         specialty=specialty_raw or None,
         region=region_raw or None,
         country=str(extras.get("country") or "Brazil").strip() or "Brazil",
         category=category_raw or None,
+        locale=locale_raw or None,
     )
     filters.validate()
     return filters

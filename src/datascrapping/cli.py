@@ -16,6 +16,7 @@ from datascrapping.cli_help import (
     BLOG_PAGINATION_MODES,
     BNI_CATEGORY_GROUPS,
     BNI_SPECIALTY_EXAMPLES,
+    PLACES_EXAMPLES,
     SHARED_DEFAULTS,
 )
 from datascrapping.core.base import ScrapeContext
@@ -25,18 +26,19 @@ from datascrapping.scrapers.loader import load_scrapers
 
 APP_EPILOG = (
     "Commands to explore options:\n\n"
-    "  datascrapping guide              Decision guide (blog vs BNI, examples)\n"
+    "  datascrapping guide              Decision guide (blog / BNI / Places)\n"
     "  datascrapping list               Registered scrapers by family\n"
     "  datascrapping bni-specialties    Live BNI Search Category list (login)\n"
-    "  datascrapping run --help         Flags grouped: Shared / Blog / BNI"
+    "  datascrapping run --help         Flags: Shared / Blog / BNI / Places"
 )
 
 app = typer.Typer(
     name="datascrapping",
     help=(
         "CLI toolkit for structured web scraping and data collection.\n\n"
-        "Two families: [bold]blog.*[/bold] (HTTP markdown crawlers) and "
-        "[bold]bni[/bold] (BNI Connect member search → CSV)."
+        "Families: [bold]blog.*[/bold] (HTTP markdown), "
+        "[bold]bni[/bold] (BNI Connect → CSV), "
+        "[bold]places.*[/bold] (Google Places prospection → CSV)."
     ),
     epilog=APP_EPILOG,
     no_args_is_help=True,
@@ -84,9 +86,15 @@ def _print_guide() -> None:
         "Search BNI Connect members → CSV "
         "(login via BNI_EMAIL / BNI_PASSWORD)",
     )
+    family.add_row(
+        "Places",
+        "places.search",
+        "Google Places Text Search + Details → CSV "
+        "(GOOGLE_PLACES_API_KEY; prospection, not SaaS Maps)",
+    )
     console.print(family)
 
-    console.print("\n[bold cyan]2. Shared flags[/bold cyan] (both families)")
+    console.print("\n[bold cyan]2. Shared flags[/bold cyan] (all families)")
     shared = Table(show_header=True, header_style="bold")
     shared.add_column("Flag / setting")
     shared.add_column("Default / notes")
@@ -145,11 +153,16 @@ def _print_guide() -> None:
     bni_flags.add_column("Purpose / known values")
     bni_flags.add_row(
         "--country",
-        "Country autocomplete (default: Brazil). Example: Brazil",
+        "Geographic country (default: Brazil). Example: Brazil",
     )
     bni_flags.add_row(
         "--region",
         "State / UF free text (e.g. SP, MG, Rio de Janeiro)",
+    )
+    bni_flags.add_row(
+        "--locale",
+        "Language for BNI API/labels: en | pt_BR | es "
+        "(not geography — use --country/--region for place)",
     )
     bni_flags.add_row(
         "--specialty",
@@ -159,8 +172,9 @@ def _print_guide() -> None:
     )
     bni_flags.add_row(
         "--category",
-        "Optional primary group hint "
-        "(e.g. Health & Wellness). See groups below.",
+        "Primary group filter alone (e.g. Health & Wellness) "
+        "or hint with --specialty. See groups below / "
+        "[cyan]bni-specialties --groups-only[/cyan].",
     )
     bni_flags.add_row(
         "--all-pages",
@@ -215,13 +229,46 @@ def _print_guide() -> None:
         "  [green]datascrapping run bni[/green]\n"
         "  [green]datascrapping run bni --region SP[/green]\n"
         "  [green]datascrapping run bni --specialty Fonoaudiologia[/green]\n"
+        "  [green]datascrapping run bni --category \"Health & Wellness\" "
+        "--locale pt_BR --all-pages[/green]\n"
         "  [green]datascrapping run bni --region SP "
         "--specialty \"Hearing/Audiology\" --all-pages[/green]\n"
         "  [green]datascrapping run bni --headed --reauth[/green]"
     )
+
+    console.print("\n[bold green]6. Places scrapers[/bold green]")
+    console.print(
+        "Needs [cyan]GOOGLE_PLACES_API_KEY[/cyan] in [cyan].env[/cyan] "
+        "(prospection key — separate from Lead Control product Maps).\n"
+        "Stage 1 ([cyan]places.search[/cyan]) yields a call list: "
+        "name, phone, address (+ website/maps_url). "
+        "Email column is reserved empty until [cyan]places.website[/cyan]."
+    )
+    places_flags = Table(title="Places-only flags", show_header=True)
+    places_flags.add_column("Flag")
+    places_flags.add_column("Purpose")
+    places_flags.add_row("--city", "City name (required), e.g. Campinas")
+    places_flags.add_row("--state", "UF 2 letters (required), e.g. SP")
+    places_flags.add_row("--niche", "terms.json key (default: aasi)")
+    places_flags.add_row(
+        "--skip-geo-check",
+        "Skip BrasilAPI IBGE city/UF validation",
+    )
+    places_flags.add_row(
+        "--max-quota",
+        "Stop when estimated Places units exceed this (default 20000)",
+    )
+    console.print(places_flags)
+    places_ex = Table(title="Example Places runs", show_header=True)
+    places_ex.add_column("Command", style="green")
+    places_ex.add_column("Notes")
+    for cmd, note in PLACES_EXAMPLES:
+        places_ex.add_row(f"datascrapping {cmd}", note)
+    console.print(places_ex)
+
     console.print(
         "\n[dim]Tip: [cyan]datascrapping run --help[/cyan] shows the same "
-        "flags in Shared / Blog / BNI panels.[/dim]"
+        "flags in Shared / Blog / BNI / Places panels.[/dim]"
     )
 
 
@@ -239,20 +286,24 @@ def main(
 
 @app.command("guide")
 def show_guide() -> None:
-    """Show a decision guide: blog vs BNI, flags, and known BNI categories."""
+    """Show a decision guide: blog / BNI / Places, flags, and examples."""
     _print_guide()
 
 
 @app.command("list")
 def list_scrapers() -> None:
-    """List registered scrapers grouped by family (blog vs BNI)."""
+    """List registered scrapers grouped by family (blog / BNI / Places)."""
     entries = registry.list()
     blog = [(n, d) for n, d in entries if n.startswith("blog.")]
     bni = [(n, d) for n, d in entries if n == "bni" or n.startswith("bni.")]
+    places = [(n, d) for n, d in entries if n.startswith("places.")]
     other = [
         (n, d)
         for n, d in entries
-        if not n.startswith("blog.") and n != "bni" and not n.startswith("bni.")
+        if not n.startswith("blog.")
+        and n != "bni"
+        and not n.startswith("bni.")
+        and not n.startswith("places.")
     ]
 
     def _table(title: str, rows: list[tuple[str, str]]) -> None:
@@ -273,6 +324,7 @@ def list_scrapers() -> None:
     )
     _table("Blog scrapers", blog)
     _table("BNI scrapers", bni)
+    _table("Places scrapers", places)
     _table("Other scrapers", other)
     console.print(
         "\n[dim]How to choose flags:[/dim] [cyan]datascrapping guide[/cyan]\n"
@@ -291,7 +343,7 @@ def list_scrapers() -> None:
 def run_scraper(
     scraper: str = typer.Argument(
         ...,
-        help="Scraper name from [cyan]list[/cyan] (blog.* or bni).",
+        help="Scraper name from [cyan]list[/cyan] (blog.* / bni / places.*).",
         rich_help_panel="Target",
     ),
     # Shared
@@ -348,13 +400,23 @@ def run_scraper(
     country: Optional[str] = typer.Option(
         None,
         "--country",
-        help="Country filter (default: Brazil). Example: Brazil.",
+        help="Geographic country filter (default: Brazil). Example: Brazil.",
         rich_help_panel="BNI scraper",
     ),
     region: Optional[str] = typer.Option(
         None,
         "--region",
         help="State/UF filter (optional free text, e.g. SP).",
+        rich_help_panel="BNI scraper",
+    ),
+    locale: Optional[str] = typer.Option(
+        None,
+        "--locale",
+        help=(
+            "BNI language locale for API/labels: en, pt_BR, or es "
+            "(aliases: pt, en-US, es-ES). Default: session locale. "
+            "Not the same as --country."
+        ),
         rich_help_panel="BNI scraper",
     ),
     specialty: Optional[str] = typer.Option(
@@ -371,8 +433,10 @@ def run_scraper(
         None,
         "--category",
         help=(
-            "Primary category group hint (optional), e.g. Health & Wellness. "
-            "See [cyan]guide[/cyan] for the known group list."
+            "Primary category group (optional), e.g. Health & Wellness. "
+            "BNI's API only filters by specialty, so --category expands into "
+            "one search per specialty in the group. See [cyan]guide[/cyan] / "
+            "[cyan]bni-specialties --groups-only[/cyan]."
         ),
         rich_help_panel="BNI scraper",
     ),
@@ -394,12 +458,42 @@ def run_scraper(
         help="Ignore saved session and log in again.",
         rich_help_panel="BNI scraper",
     ),
+    # Places
+    city: Optional[str] = typer.Option(
+        None,
+        "--city",
+        help="City name for places.search (required), e.g. Campinas.",
+        rich_help_panel="Places scrapers",
+    ),
+    state: Optional[str] = typer.Option(
+        None,
+        "--state",
+        help="UF (2 letters) for places.search (required), e.g. SP.",
+        rich_help_panel="Places scrapers",
+    ),
+    niche: Optional[str] = typer.Option(
+        None,
+        "--niche",
+        help="Niche key from terms.json (default: aasi).",
+        rich_help_panel="Places scrapers",
+    ),
+    skip_geo_check: bool = typer.Option(
+        False,
+        "--skip-geo-check",
+        help="Skip BrasilAPI IBGE validation of city/UF.",
+        rich_help_panel="Places scrapers",
+    ),
+    max_quota: Optional[int] = typer.Option(
+        None,
+        "--max-quota",
+        help="Max estimated Places API quota units (default: 20000).",
+        rich_help_panel="Places scrapers",
+    ),
 ) -> None:
     """Run a registered scraper.
 
-    [bold]Blog[/bold] and [bold]BNI[/bold] use different flags — see panels
-    below, or run [cyan]datascrapping guide[/cyan] for examples and known
-    BNI specialty/category values.
+    [bold]Blog[/bold], [bold]BNI[/bold], and [bold]Places[/bold] use different
+    flags — see panels below, or run [cyan]datascrapping guide[/cyan].
     """
     env_min, env_max = default_delays()
     delay_explicit = delay_min is not None or delay_max is not None
@@ -410,10 +504,15 @@ def run_scraper(
             "out": out,
             "country": country,
             "region": region,
+            "locale": locale,
             "specialty": specialty,
             "category": category,
             "pagination": pagination,
             "max_pages": max_pages,
+            "city": city,
+            "state": state,
+            "niche": niche,
+            "max_quota": max_quota,
         }.items()
         if value is not None
     }
@@ -423,6 +522,8 @@ def run_scraper(
         extras["headed"] = True
     if reauth:
         extras["reauth"] = True
+    if skip_geo_check:
+        extras["skip_geo_check"] = True
     if delay_explicit:
         extras["delay_explicit"] = True
 

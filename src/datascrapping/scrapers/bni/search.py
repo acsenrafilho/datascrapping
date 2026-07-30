@@ -10,7 +10,7 @@ from urllib.parse import urljoin, urlparse
 from datascrapping.scrapers.bni.categories import (
     BniCategory,
     fetch_category_catalog,
-    resolve_specialty,
+    resolve_search_filters,
 )
 from datascrapping.scrapers.bni.models import BNI_SEARCH_URL, BniFilters, BniMember
 
@@ -121,7 +121,8 @@ def _select_mui_autocomplete(page, placeholder: str, value: str) -> bool:
 def apply_filters(page, filters: BniFilters) -> BniCategory | None:
     """Open Filter UI, apply optional country/region/specialty, run search.
 
-    Returns the resolved Search Category when --specialty was provided.
+    Returns the resolved Search Category or primary category group used for
+    API queries (when --specialty and/or --category were provided).
     """
     open_filter_panel(page)
 
@@ -154,13 +155,18 @@ def apply_filters(page, filters: BniFilters) -> BniCategory | None:
 
     resolved: BniCategory | None = None
     specialty_ok = True
-    if filters.specialty:
-        catalog = fetch_category_catalog(page.context)
-        resolved = resolve_specialty(
-            filters.specialty,
-            catalog,
-            category_group=filters.category,
+    if filters.specialty or filters.category:
+        catalog = fetch_category_catalog(
+            page.context,
+            preferred_locale=filters.locale,
         )
+        resolved = resolve_search_filters(
+            catalog,
+            specialty=filters.specialty,
+            category=filters.category,
+        )
+
+    if filters.specialty and resolved is not None and not resolved.is_primary_only:
         specialty_candidates = [resolved.secondary]
         if filters.specialty.strip().casefold() != resolved.secondary.casefold():
             specialty_candidates.append(filters.specialty.strip())
@@ -175,10 +181,14 @@ def apply_filters(page, filters: BniFilters) -> BniCategory | None:
                 break
 
     logger.info(
-        "Filter fill status: country=%s region=%s specialty=%s (resolved=%r)",
+        "Filter fill status: country=%s region=%s specialty=%s "
+        "category=%s (resolved=%r)",
         country_ok,
         region_ok if filters.region else "skipped",
         specialty_ok if filters.specialty else "skipped",
+        "api" if (filters.category and not filters.specialty) else (
+            "hint" if filters.category else "skipped"
+        ),
         resolved.display if resolved else None,
     )
     if not country_ok:
@@ -191,13 +201,22 @@ def apply_filters(page, filters: BniFilters) -> BniCategory | None:
             "Could not apply optional BNI --region filter. "
             "Run with --headed to inspect the Filter panel."
         )
+    # Collection uses connect-search-api with speciality_id / category expansion.
+    # UI autocomplete is best-effort only (locale labels often differ).
     if filters.specialty and not specialty_ok:
-        assert resolved is not None
-        raise RuntimeError(
-            f"Could not select BNI Search Category {resolved.secondary!r}. "
-            "Run with --headed to inspect the Filter panel, or list options with "
-            "`poetry run datascrapping bni-specialties`."
-        )
+        if resolved is not None and resolved.secondary_id:
+            logger.warning(
+                "Could not select Search Category %r in the Filter UI; "
+                "continuing with API speciality_id=%s (%s)",
+                resolved.secondary,
+                resolved.secondary_id,
+                resolved.display,
+            )
+        else:
+            raise RuntimeError(
+                f"Could not resolve BNI Search Category {filters.specialty!r}. "
+                "List options with: poetry run datascrapping bni-specialties."
+            )
 
     search_btn = page.get_by_role(
         "button",
@@ -294,7 +313,7 @@ def search_members_page(
 ) -> SearchPage:
     """Query connect-search-api advanced member search for one page."""
     token = _portal_access_token(page)
-    locale = _portal_locale(page)
+    locale = filters.locale or _portal_locale(page)
     payload = {
         "search_tags": "",
         "country": filters.country,
@@ -304,12 +323,26 @@ def search_members_page(
         "state": filters.region,
         "company_name": None,
         "category_id": resolved.primary_id if resolved else None,
-        "speciality_id": resolved.secondary_id if resolved else None,
+        "speciality_id": (
+            resolved.secondary_id
+            if resolved and resolved.secondary_id
+            else None
+        ),
         "locale_code": locale,
         "concept_id": 1,
         "page_no": page_no,
         "per_page": per_page,
     }
+    logger.info(
+        "Search API request page=%s country=%r state=%r "
+        "category_id=%s speciality_id=%s locale_code=%s",
+        page_no,
+        filters.country,
+        filters.region,
+        payload["category_id"],
+        payload["speciality_id"],
+        locale,
+    )
     response = page.context.request.post(
         BNI_SEARCH_API,
         data=json.dumps(payload),
