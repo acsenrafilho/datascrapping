@@ -26,5 +26,17 @@
   "descricao_identificador_matriz_filial": "MATRIZ",
   "ddd_telefone_1": "1133334444",
   "ddd_telefone_2": "",
-  "email": null
+  "email": null,
+  "qsa": [
+    {
+      "nome_socio": "MARIA SILVA",
+      "qualificacao_socio": "Sócio-Administrador",
+      "cnpj_cpf_do_socio": "***111111**"
+    },
+    {
+      "nome_socio": "JOAO SOUZA",
+      "qualificacao_socio": "Sócio",
+      "cnpj_cpf_do_socio": "***222222**"
+    }
+  ]
 }

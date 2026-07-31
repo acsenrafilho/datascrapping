@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from urllib.parse import unquote, urlparse
+from typing import Any
+from urllib.parse import parse_qs, unquote, urlparse
 
 from bs4 import BeautifulSoup
 
@@ -26,6 +27,9 @@ CNPJ_FORMATTED_RE = re.compile(
     r"\d{2}\.?\d{3}\.?\d{3}/?\d{4}-?\d{2}",
 )
 
+# wa.me/5516999999999 or path segment with digits
+WA_ME_PATH_RE = re.compile(r"/(\+?\d{10,15})")
+
 SOCIAL_HOSTS = {
     "facebook": ("facebook.com", "fb.com"),
     "instagram": ("instagram.com",),
@@ -43,11 +47,17 @@ class HeuristicExtraction:
     cnpj_raw: str = ""
     social: dict[str, str] = field(default_factory=dict)
     brand_name: str = ""
+    whatsapp: str = ""
+    whatsapp_url: str = ""
 
 
 def _normalize_email(raw: str) -> str | None:
     email = unquote(raw).strip().strip(".,;:<>()[]\"'")
-    email = email.replace("mailto:", "", 1) if email.lower().startswith("mailto:") else email
+    email = (
+        email.replace("mailto:", "", 1)
+        if email.lower().startswith("mailto:")
+        else email
+    )
     if "?" in email:
         email = email.split("?", 1)[0]
     email = email.strip().lower()
@@ -62,6 +72,21 @@ def _normalize_email(raw: str) -> str | None:
 
 def _digits_only(value: str) -> str:
     return re.sub(r"\D", "", value)
+
+
+def normalize_whatsapp_digits(raw: str) -> str:
+    """Normalize to digits; prefer BR E.164 (55 + DDD + number) when length fits."""
+    digits = _digits_only(raw)
+    if not digits:
+        return ""
+    digits = digits.lstrip("0") or digits
+    if len(digits) in (10, 11):
+        return "55" + digits
+    if len(digits) in (12, 13) and digits.startswith("55"):
+        return digits
+    if 10 <= len(digits) <= 15:
+        return digits
+    return ""
 
 
 def clean_cnpj_digits(value: str) -> str | None:
@@ -139,6 +164,86 @@ def extract_phones_from_text(text: str) -> list[str]:
     return found
 
 
+def extract_tel_links(html: str) -> list[str]:
+    """Extract phone numbers from tel: hrefs."""
+    soup = BeautifulSoup(html, "html.parser")
+    found: list[str] = []
+    for a_tag in soup.find_all("a", href=True):
+        href = a_tag["href"].strip()
+        if not href.lower().startswith("tel:"):
+            continue
+        raw = unquote(href[4:]).strip()
+        digits = _digits_only(raw)
+        if 8 <= len(digits) <= 15:
+            cleaned = re.sub(r"\s+", " ", raw.strip())
+            if cleaned and cleaned not in found:
+                found.append(cleaned)
+    return found
+
+
+def _whatsapp_from_href(href: str) -> tuple[str, str] | None:
+    """Return (digits, original_url) if href is a WhatsApp link."""
+    raw = href.strip()
+    if not raw:
+        return None
+    try:
+        parsed = urlparse(raw if "://" in raw else "https://" + raw.lstrip("/"))
+    except Exception:
+        return None
+    host = (parsed.netloc or "").lower().removeprefix("www.")
+    path = parsed.path or ""
+    query = parse_qs(parsed.query or "")
+
+    digits = ""
+    if "wa.me" in host or host.endswith("wa.me"):
+        match = WA_ME_PATH_RE.search(path)
+        if match:
+            digits = normalize_whatsapp_digits(match.group(1))
+    elif "api.whatsapp.com" in host or host.endswith("whatsapp.com"):
+        if query.get("phone"):
+            digits = normalize_whatsapp_digits(query["phone"][0])
+    elif "whatsapp" in host and query.get("phone"):
+        digits = normalize_whatsapp_digits(query["phone"][0])
+
+    if not digits:
+        return None
+    url_out = raw if "://" in raw else f"https://wa.me/{digits}"
+    return digits, url_out
+
+
+def extract_whatsapp_from_html(html: str) -> tuple[str, str]:
+    """Return (digits, first_url) for WhatsApp links in HTML."""
+    soup = BeautifulSoup(html, "html.parser")
+    for a_tag in soup.find_all("a", href=True):
+        result = _whatsapp_from_href(a_tag["href"].strip())
+        if result:
+            return result
+    for match in re.finditer(
+        r"https?://(?:wa\.me|api\.whatsapp\.com|www\.whatsapp\.com)/[^\s\"'<>]+",
+        html or "",
+        re.IGNORECASE,
+    ):
+        result = _whatsapp_from_href(match.group(0))
+        if result:
+            return result
+    return "", ""
+
+
+def extract_meta_text(html: str) -> str:
+    """Collect og:description, og:title, meta description, title for bio-like text."""
+    soup = BeautifulSoup(html, "html.parser")
+    chunks: list[str] = []
+    for prop in ("og:description", "og:title", "twitter:description", "description"):
+        tag = soup.find("meta", property=prop) or soup.find(
+            "meta", attrs={"name": prop}
+        )
+        if tag and tag.get("content"):
+            chunks.append(str(tag["content"]).strip())
+    if soup.title and soup.title.string:
+        chunks.append(soup.title.string.strip())
+    return "\n".join(c for c in chunks if c)
+
+
 def extract_cnpj_from_text(text: str) -> str:
     for match in CNPJ_FORMATTED_RE.findall(text or ""):
         digits = clean_cnpj_digits(match)
@@ -146,7 +251,6 @@ def extract_cnpj_from_text(text: str) -> str:
             continue
         if _is_valid_cnpj_check_digits(digits):
             return format_cnpj(digits)
-        # accept 14-digit lookalikes that fail check-digit only as raw formatted
         return format_cnpj(digits)
     return ""
 
@@ -159,14 +263,15 @@ def extract_social_links(html: str) -> dict[str, str]:
         if not href or href.startswith(("#", "javascript:", "mailto:", "tel:")):
             continue
         try:
-            host = urlparse(href).netloc.lower()
+            lower_host = urlparse(href).netloc.lower().removeprefix("www.")
         except Exception:
             continue
-        host = host.removeprefix("www.")
+        if "wa.me" in lower_host or "api.whatsapp.com" in lower_host:
+            continue
         for network, hosts in SOCIAL_HOSTS.items():
             if network in found:
                 continue
-            if any(host == h or host.endswith("." + h) for h in hosts):
+            if any(lower_host == h or lower_host.endswith("." + h) for h in hosts):
                 found[network] = href
     return found
 
@@ -175,12 +280,40 @@ def extract_brand_from_html(html: str) -> str:
     soup = BeautifulSoup(html, "html.parser")
     if soup.title and soup.title.string:
         title = soup.title.string.strip()
-        # common "Brand | Home" / "Brand - Contato"
         for sep in ("|", "–", "-", "—"):
             if sep in title:
                 return title.split(sep, 1)[0].strip()[:120]
         return title[:120]
     return ""
+
+
+def extract_contacts_from_html(html: str) -> dict[str, Any]:
+    """Extract emails, phones, whatsapp from a single HTML blob (site or social)."""
+    emails = extract_mailto_emails(html) + extract_emails_from_text(html)
+    meta = extract_meta_text(html)
+    if meta:
+        emails.extend(extract_emails_from_text(meta))
+    phones = extract_phones_from_text(html) + extract_tel_links(html)
+    if meta:
+        phones.extend(extract_phones_from_text(meta))
+    wa_digits, wa_url = extract_whatsapp_from_html(html)
+    if not wa_digits and meta:
+        for match in re.finditer(
+            r"(?:wa\.me/|whatsapp\.com/send\?phone=)(\+?\d{10,15})",
+            meta,
+            re.IGNORECASE,
+        ):
+            wa_digits = normalize_whatsapp_digits(match.group(1))
+            if wa_digits:
+                wa_url = f"https://wa.me/{wa_digits}"
+                break
+    return {
+        "emails": emails,
+        "phones": phones,
+        "whatsapp": wa_digits,
+        "whatsapp_url": wa_url,
+        "meta_text": meta,
+    }
 
 
 def extract_from_pages(pages: dict[str, str]) -> HeuristicExtraction:
@@ -190,11 +323,16 @@ def extract_from_pages(pages: dict[str, str]) -> HeuristicExtraction:
     social: dict[str, str] = {}
     cnpj_raw = ""
     brand_name = ""
+    whatsapp = ""
+    whatsapp_url = ""
 
     for html in pages.values():
         emails.extend(extract_mailto_emails(html))
         emails.extend(extract_emails_from_text(html))
         phones.extend(extract_phones_from_text(html))
+        phones.extend(extract_tel_links(html))
+        if not whatsapp:
+            whatsapp, whatsapp_url = extract_whatsapp_from_html(html)
         for network, url in extract_social_links(html).items():
             social.setdefault(network, url)
         if not cnpj_raw:
@@ -202,7 +340,6 @@ def extract_from_pages(pages: dict[str, str]) -> HeuristicExtraction:
         if not brand_name:
             brand_name = extract_brand_from_html(html)
 
-    # de-dupe emails preserving order
     seen_e: set[str] = set()
     uniq_emails: list[str] = []
     for email in emails:
@@ -224,4 +361,6 @@ def extract_from_pages(pages: dict[str, str]) -> HeuristicExtraction:
         cnpj_raw=cnpj_raw,
         social=social,
         brand_name=brand_name,
+        whatsapp=whatsapp,
+        whatsapp_url=whatsapp_url,
     )

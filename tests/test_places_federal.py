@@ -11,6 +11,7 @@ import requests
 from datascrapping.scrapers.places.federal import (
     build_fiscal_endereco,
     fetch_cnpj,
+    flatten_qsa,
     map_federal_to_row,
 )
 
@@ -41,14 +42,25 @@ def test_map_federal_to_row_success():
     assert row["fiscal_cep"] == "01153000"
     assert row["federal_phone_1"] == "1133334444"
     assert row["federal_email"] == ""
+    assert row["qsa_nomes"] == "MARIA SILVA|JOAO SOUZA"
+    assert row["qsa_qualificacoes"] == "Sócio-Administrador|Sócio"
+    assert "MARIA SILVA:Sócio-Administrador" in row["qsa_raw"]
     assert "SAO PAULO" in row["fiscal_endereco"]
     assert "CEP 01153000" in row["fiscal_endereco"]
+
+
+def test_flatten_qsa_empty():
+    assert flatten_qsa(None) == ("", "", "")
+    assert flatten_qsa([]) == ("", "", "")
+    assert flatten_qsa("bad") == ("", "", "")
 
 
 def test_map_federal_none_returns_empty():
     row = map_federal_to_row(None)
     assert row["razao_social"] == ""
     assert row["cnpj"] == ""
+    assert row["qsa_nomes"] == ""
+    assert row["qsa_raw"] == ""
 
 
 def test_build_fiscal_endereco():

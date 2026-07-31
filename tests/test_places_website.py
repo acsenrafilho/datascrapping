@@ -40,6 +40,8 @@ def test_merge_heuristics_win_over_gemini():
         cnpj_raw="11.444.777/0001-61",
         social={"instagram": "https://instagram.com/a"},
         brand_name="Heur Brand",
+        whatsapp="5511999990000",
+        whatsapp_url="https://wa.me/5511999990000",
     )
     gemini = {
         "emails": ["b@y.com"],
@@ -58,6 +60,8 @@ def test_merge_heuristics_win_over_gemini():
     assert extras["brand_name"] == "Heur Brand"
     assert extras["social_instagram"] == "https://instagram.com/a"
     assert extras["social_facebook"] == "https://facebook.com/gemini"
+    assert extras["whatsapp"] == "5511999990000"
+    assert extras["whatsapp_url"] == "https://wa.me/5511999990000"
 
 
 def test_dry_run(tmp_path):
@@ -130,9 +134,19 @@ def test_enrich_with_mocked_crawl(tmp_path, monkeypatch):
         base_url="https://clinicateste.com.br",
     )
     scraper = PlacesWebsiteScraper()
-    with patch(
-        "datascrapping.scrapers.places.website.WebsiteCrawler"
-    ) as crawler_cls:
+    with (
+        patch(
+            "datascrapping.scrapers.places.website.WebsiteCrawler"
+        ) as crawler_cls,
+        patch(
+            "datascrapping.scrapers.places.website.enrich_from_social_urls"
+        ) as social_fn,
+    ):
+        from datascrapping.scrapers.places.social_enrich import SocialEnrichResult
+
+        social_fn.return_value = SocialEnrichResult(
+            status_parts=["instagram:no_contact"]
+        )
         crawler_cls.return_value.crawl.return_value = crawl
         result = scraper.run(
             ScrapeContext(
@@ -147,6 +161,7 @@ def test_enrich_with_mocked_crawl(tmp_path, monkeypatch):
     assert rows[0]["email"] == "hello@clinicateste.com.br"
     assert rows[0]["social_instagram"]
     assert rows[0]["website_status"] == "completed"
+    assert rows[0]["social_enrich_status"] == "instagram:no_contact"
     assert (tmp_path / "places.website.seen.json").exists()
 
 
@@ -174,9 +189,17 @@ def test_checkpoint_resume(tmp_path, monkeypatch):
         out_dir=tmp_path,
         extras={"from_path": str(csv_path), "skip_llm": True},
     )
-    with patch(
-        "datascrapping.scrapers.places.website.WebsiteCrawler"
-    ) as crawler_cls:
+    with (
+        patch(
+            "datascrapping.scrapers.places.website.WebsiteCrawler"
+        ) as crawler_cls,
+        patch(
+            "datascrapping.scrapers.places.website.enrich_from_social_urls"
+        ) as social_fn,
+    ):
+        from datascrapping.scrapers.places.social_enrich import SocialEnrichResult
+
+        social_fn.return_value = SocialEnrichResult()
         crawler_cls.return_value.crawl.return_value = crawl
         first = scraper.run(ctx)
         second = scraper.run(ctx)
@@ -221,7 +244,15 @@ def test_gemini_fill_gaps_when_heuristics_empty(tmp_path, monkeypatch):
             "datascrapping.scrapers.places.website.extract_with_gemini",
             return_value=gemini_payload,
         ) as gemini_fn,
+        patch(
+            "datascrapping.scrapers.places.website.enrich_from_social_urls"
+        ) as social_fn,
     ):
+        from datascrapping.scrapers.places.social_enrich import SocialEnrichResult
+
+        social_fn.return_value = SocialEnrichResult(
+            status_parts=["linkedin:no_contact"]
+        )
         crawler_cls.return_value.crawl.return_value = crawl
         result = scraper.run(
             ScrapeContext(

@@ -251,7 +251,10 @@ def _print_guide() -> None:
         "(e.g. [cyan]campinas_sp_aasi[/cyan]). "
         "With separate stages, pass [cyan]--from[/cyan] as that folder "
         "or the CSV file inside it.\n"
-        "CEP / endereço fiscal vêm da BrasilAPI CNPJ (stage 3), não de ViaCEP."
+        "CEP / endereço fiscal vêm da BrasilAPI CNPJ (stage 3), não de ViaCEP.\n"
+        "Stage 2 also extracts [cyan]whatsapp[/cyan] and best-effort social bios "
+        "(HTTP only; IG/FB/LinkedIn often login-wall). "
+        "Stage 3 adds [cyan]qsa_*[/cyan] (sócios)."
     )
     pipeline = Table(
         title="Places pipeline (one city end-to-end)",

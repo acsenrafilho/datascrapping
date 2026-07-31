@@ -207,7 +207,9 @@ Outputs:
 - CSV: `places_enriched.csv` (same folder as input)
 - Checkpoint: `places.website.seen.json` (resume by `place_id`)
 
-Extra columns include `email`, `emails_extra`, `phones_extra`, `cnpj_raw`, `social_*`, `brand_name`, `website_status`, `website_scraped_at`, `pages_fetched`, `pages_failed`.
+Extra columns include `email`, `emails_extra`, `phones_extra`, `cnpj_raw`, `whatsapp`, `whatsapp_url`, `social_*` (profile URLs), `social_enrich_status` (best-effort HTTP on those profiles — IG/FB/LinkedIn often login-wall), `brand_name`, `website_status`, `website_scraped_at`, `pages_fetched`, `pages_failed`.
+
+WhatsApp links (`wa.me` / `api.whatsapp.com`) and `tel:` hrefs are extracted from the company site; social profile pages are fetched once each (no login / no Playwright) to pull bio/meta contacts when available.
 
 Respect `robots.txt` and site ToS. Gemini is optional and fail-soft if the `llm` extra or key is missing.
 
@@ -236,7 +238,7 @@ Outputs:
 - CSV: `places_full.csv` (same folder as input; or `output/places/cnpj_manual/` for `--cnpj` alone)
 - Checkpoint: `places.cnpj.seen.json` (resume by `place_id`)
 
-Extra columns include `razao_social`, `nome_fantasia`, `situacao`, `cnae`, `cnae_descricao`, `fiscal_*` (endereço fiscal + CEP), `natureza_juridica`, `porte`, `federal_phone_*`, `federal_email`, `cnpj_status`, `cnpj_status_reason`, `cnpj_scraped_at`. Does **not** overwrite website `email`.
+Extra columns include `razao_social`, `nome_fantasia`, `situacao`, `cnae`, `cnae_descricao`, `fiscal_*` (endereço fiscal + CEP), `natureza_juridica`, `porte`, `federal_phone_*`, `federal_email`, `qsa_nomes`, `qsa_qualificacoes`, `qsa_raw` (sócios da BrasilAPI), `cnpj_status`, `cnpj_status_reason`, `cnpj_scraped_at`. Does **not** overwrite website `email`.
 
 **Smoke (manual):** `places.all --city … --state … --skip-llm` on a small BR city, or run stages ①→②→③; confirm name/phone/address, then e-mail when the site exposes contact, then `razao_social` / `situacao` when `cnpj_raw` is valid.
 

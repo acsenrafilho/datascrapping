@@ -68,14 +68,14 @@ PLACES_PIPELINE = (
         "places.website",
         "places.csv (or folder)",
         "…/<slug>/places_enriched.csv",
-        "optional GEMINI_API_KEY (+ poetry install -E llm)",
+        "WhatsApp + social bio HTTP; optional GEMINI_API_KEY",
     ),
     (
         "3",
         "places.cnpj",
         "places_enriched.csv (or folder)",
         "…/<slug>/places_full.csv",
-        "none (BrasilAPI public)",
+        "BrasilAPI (incl. QSA sócios); no key",
     ),
     (
         "★",

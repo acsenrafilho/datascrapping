@@ -103,6 +103,9 @@ def test_enriched_csv_extends_base():
     assert CSV_FIELDS == ENRICHED_CSV_FIELDS[: len(CSV_FIELDS)]
     assert "emails_extra" in ENRICHED_CSV_FIELDS
     assert "cnpj_raw" in ENRICHED_CSV_FIELDS
+    assert "whatsapp" in ENRICHED_CSV_FIELDS
+    assert "whatsapp_url" in ENRICHED_CSV_FIELDS
+    assert "social_enrich_status" in ENRICHED_CSV_FIELDS
     assert "website_status" in ENRICHED_CSV_FIELDS
 
 
@@ -129,6 +132,9 @@ def test_full_csv_extends_enriched():
     assert "razao_social" in FULL_CSV_FIELDS
     assert "cnpj_status" in FULL_CSV_FIELDS
     assert "fiscal_endereco" in FULL_CSV_FIELDS
+    assert "qsa_nomes" in FULL_CSV_FIELDS
+    assert "qsa_qualificacoes" in FULL_CSV_FIELDS
+    assert "qsa_raw" in FULL_CSV_FIELDS
 
 
 def test_cnpj_filters_and_resolve_enriched(tmp_path):

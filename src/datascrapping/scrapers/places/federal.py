@@ -190,6 +190,33 @@ def _flatten_cnaes_secundarios(raw: Any) -> str:
     return "|".join(parts)
 
 
+def flatten_qsa(raw: Any) -> tuple[str, str, str]:
+    """Flatten BrasilAPI qsa into (nomes, qualificacoes, raw) pipe-joined strings."""
+    if not isinstance(raw, list):
+        return "", "", ""
+    nomes: list[str] = []
+    quals: list[str] = []
+    compact: list[str] = []
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        name = _str_field(item.get("nome_socio") or item.get("nome"))
+        qual = _str_field(
+            item.get("qualificacao_socio") or item.get("qualificacao")
+        )
+        if not name and not qual:
+            continue
+        nomes.append(name)
+        quals.append(qual)
+        if name and qual:
+            compact.append(f"{name}:{qual}")
+        elif name:
+            compact.append(name)
+        else:
+            compact.append(qual)
+    return "|".join(nomes), "|".join(quals), "|".join(compact)
+
+
 def map_federal_to_row(api_json: dict[str, Any] | None) -> dict[str, str]:
     """Project BrasilAPI JSON into FULL_EXTRA_FIELDS (federal columns only)."""
     extras = empty_full_extras()
@@ -228,6 +255,10 @@ def map_federal_to_row(api_json: dict[str, Any] | None) -> dict[str, str]:
     extras["federal_phone_1"] = _str_field(api_json.get("ddd_telefone_1"))
     extras["federal_phone_2"] = _str_field(api_json.get("ddd_telefone_2"))
     extras["federal_email"] = _str_field(api_json.get("email"))
+    qsa_nomes, qsa_quals, qsa_raw = flatten_qsa(api_json.get("qsa"))
+    extras["qsa_nomes"] = qsa_nomes
+    extras["qsa_qualificacoes"] = qsa_quals
+    extras["qsa_raw"] = qsa_raw
     return extras
 
 

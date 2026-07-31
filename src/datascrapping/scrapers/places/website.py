@@ -17,6 +17,7 @@ from datascrapping.scrapers.places.crawl import WebsiteCrawler
 from datascrapping.scrapers.places.extract import (
     HeuristicExtraction,
     extract_from_pages,
+    normalize_whatsapp_digits,
 )
 from datascrapping.scrapers.places.gemini import (
     GeminiUnavailable,
@@ -30,8 +31,31 @@ from datascrapping.scrapers.places.models import (
     resolve_places_csv,
     website_filters_from_extras,
 )
+from datascrapping.scrapers.places.social_enrich import enrich_from_social_urls
 
 logger = logging.getLogger(__name__)
+
+
+def _dedupe_emails(emails: list[str]) -> list[str]:
+    seen: set[str] = set()
+    out: list[str] = []
+    for email in emails:
+        key = email.lower().strip()
+        if key and key not in seen:
+            seen.add(key)
+            out.append(key)
+    return out
+
+
+def _dedupe_phones(phones: list[str]) -> list[str]:
+    seen: set[str] = set()
+    out: list[str] = []
+    for phone in phones:
+        key = "".join(c for c in phone if c.isdigit())
+        if key and key not in seen:
+            seen.add(key)
+            out.append(phone)
+    return out
 
 
 def _merge_fill_gaps(
@@ -49,6 +73,8 @@ def _merge_fill_gaps(
     cnpj = heur.cnpj_raw
     brand = heur.brand_name
     social = dict(heur.social)
+    whatsapp = heur.whatsapp
+    whatsapp_url = heur.whatsapp_url
 
     if gemini_data:
         for email in gemini_data.get("emails") or []:
@@ -57,10 +83,16 @@ def _merge_fill_gaps(
         for phone_item in gemini_data.get("phones") or []:
             if isinstance(phone_item, dict):
                 number = str(phone_item.get("number") or "").strip()
+                phone_type = str(phone_item.get("type") or "").strip().lower()
             else:
                 number = str(phone_item or "").strip()
+                phone_type = ""
             if number:
                 phones.append(number)
+            if phone_type == "whatsapp" and number and not whatsapp:
+                whatsapp = normalize_whatsapp_digits(number)
+                if whatsapp and not whatsapp_url:
+                    whatsapp_url = f"https://wa.me/{whatsapp}"
         if not cnpj and gemini_data.get("cnpj"):
             cnpj = str(gemini_data["cnpj"]).strip()
         if not brand and gemini_data.get("brand_name"):
@@ -78,26 +110,106 @@ def _merge_fill_gaps(
                 if key not in social and links.get(key):
                     social[key] = str(links[key]).strip()
 
-    # de-dupe emails after merge
-    seen: set[str] = set()
-    uniq_emails: list[str] = []
-    for email in emails:
-        key = email.lower().strip()
-        if key and key not in seen:
-            seen.add(key)
-            uniq_emails.append(key)
+    uniq_emails = _dedupe_emails(emails)
+    uniq_phones = _dedupe_phones(phones)
 
     primary_email = uniq_emails[0] if uniq_emails else ""
     extras["emails_extra"] = join_extra(uniq_emails[1:])
-    extras["phones_extra"] = join_extra(phones)
+    extras["phones_extra"] = join_extra(uniq_phones)
     extras["cnpj_raw"] = cnpj
     extras["brand_name"] = brand
+    extras["whatsapp"] = whatsapp
+    extras["whatsapp_url"] = whatsapp_url
     extras["social_facebook"] = social.get("facebook", "")
     extras["social_instagram"] = social.get("instagram", "")
     extras["social_linkedin"] = social.get("linkedin", "")
     extras["social_youtube"] = social.get("youtube", "")
     extras["social_tiktok"] = social.get("tiktok", "")
     extras["social_twitter"] = social.get("twitter", "")
+    extras["social_enrich_status"] = ""
+    return primary_email, extras
+
+
+def _apply_social_enrich(
+    primary_email: str,
+    extras: dict[str, str],
+    *,
+    use_llm: bool,
+    gemini_key: str,
+) -> tuple[str, dict[str, str]]:
+    """Fetch social profile URLs and merge contacts into extras (fill-gaps)."""
+    social_urls = {
+        "facebook": extras.get("social_facebook", ""),
+        "instagram": extras.get("social_instagram", ""),
+        "linkedin": extras.get("social_linkedin", ""),
+        "youtube": extras.get("social_youtube", ""),
+        "tiktok": extras.get("social_tiktok", ""),
+        "twitter": extras.get("social_twitter", ""),
+    }
+    if not any(social_urls.values()):
+        extras["social_enrich_status"] = ""
+        return primary_email, extras
+
+    social = enrich_from_social_urls(social_urls)
+    extras["social_enrich_status"] = social.status
+
+    # Optional Gemini on concatenated meta bios (fill-gaps only)
+    if use_llm and gemini_key and social.meta_texts:
+        try:
+            fake_pages = {
+                f"social-meta-{idx}": f"<html><body>{text}</body></html>"
+                for idx, text in enumerate(social.meta_texts[:6])
+            }
+            gemini_data = extract_with_gemini(fake_pages, gemini_key)
+            for email in gemini_data.get("emails") or []:
+                if isinstance(email, str) and email.strip():
+                    social.emails.append(email.strip().lower())
+            for phone_item in gemini_data.get("phones") or []:
+                if isinstance(phone_item, dict):
+                    number = str(phone_item.get("number") or "").strip()
+                    phone_type = str(phone_item.get("type") or "").strip().lower()
+                else:
+                    number = str(phone_item or "").strip()
+                    phone_type = ""
+                if number:
+                    social.phones.append(number)
+                if phone_type == "whatsapp" and number and not social.whatsapp:
+                    social.whatsapp = normalize_whatsapp_digits(number)
+                    social.whatsapp_url = f"https://wa.me/{social.whatsapp}"
+        except GeminiUnavailable as exc:
+            logger.warning("Gemini social enrich skipped: %s", exc)
+        except Exception as exc:
+            logger.warning("Gemini social enrich failed: %s", exc)
+
+    existing_emails = []
+    if primary_email:
+        existing_emails.append(primary_email)
+    if extras.get("emails_extra"):
+        existing_emails.extend(
+            e for e in extras["emails_extra"].split("|") if e.strip()
+        )
+    merged_emails = _dedupe_emails(existing_emails + social.emails)
+    if not primary_email and merged_emails:
+        primary_email = merged_emails[0]
+        extras["emails_extra"] = join_extra(merged_emails[1:])
+    else:
+        extras["emails_extra"] = join_extra(
+            [e for e in merged_emails if e != primary_email]
+        )
+
+    existing_phones: list[str] = []
+    if extras.get("phones_extra"):
+        existing_phones.extend(
+            p for p in extras["phones_extra"].split("|") if p.strip()
+        )
+    extras["phones_extra"] = join_extra(
+        _dedupe_phones(existing_phones + social.phones)
+    )
+
+    if not extras.get("whatsapp") and social.whatsapp:
+        extras["whatsapp"] = social.whatsapp
+        extras["whatsapp_url"] = social.whatsapp_url or extras.get("whatsapp_url", "")
+
     return primary_email, extras
 
 
@@ -220,6 +332,18 @@ class PlacesWebsiteScraper(BaseScraper):
                     logger.warning("Gemini extraction failed: %s", exc)
 
             email, merged = _merge_fill_gaps(heur, gemini_data)
+            try:
+                email, merged = _apply_social_enrich(
+                    email,
+                    merged,
+                    use_llm=use_llm,
+                    gemini_key=gemini_key or "",
+                )
+            except Exception as exc:
+                logger.warning("Social enrich failed: %s", exc)
+                merged["social_enrich_status"] = merged.get(
+                    "social_enrich_status"
+                ) or "error"
 
             if crawl.status_reason == "Scraping disallowed by robots.txt":
                 status = "robots_disallowed"
